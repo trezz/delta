@@ -4,6 +4,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../sort.h"
+
+static int reverse_ints(int* slice, int a, int b) { return slice[a] > slice[b]; }
+
 void test_slice_int() {
     int* ints = slice_make(sizeof(int), 10, 10);
 
@@ -40,6 +44,13 @@ void test_slice_int() {
     assert(NULL == slice_sub(ints, 30, 31));
     assert(NULL == slice_sub(ints, 3, -50));
 
+    sort_slice(ints, reverse_ints);
+    printf("-- Sorted:\n");
+    for (int i = 0; i < slice_len(ints); ++i) {
+        printf("%d ", ints[i]);
+    }
+    printf("\n");
+
     slice_del(ints);
 }
 
@@ -50,6 +61,10 @@ void test_slice_char() {
 
     assert(strcmp("hello world!", s) == 0);
     assert(strcmp("hello", hello) == 0);
+
+    sort_chars(hello);
+
+    printf("%s\n", hello);
 
     slice_del(hello);
     slice_del(s);
@@ -77,8 +92,64 @@ void test_slice_slice() {
     slice_del(m);
 }
 
+void test_slice_string() {
+    char** s = slice_make(sizeof(char*), 0, 10);
+    s = slice_appendn(s, 4, "Zinedine", "Vincent", "Alice", "Bob");
+
+    sort_cstrings(s);
+
+    printf("== Sorted:\n");
+    for (int i = 0; i < 4; ++i) {
+        printf("%s\n", s[i]);
+    }
+}
+
+typedef struct person {
+    char* name;
+    int age;
+} person;
+
+void print_person(const person* p) { printf("[%s age=%d]", p->name, p->age); }
+
+int sort_person(person** s, int a, int b) {
+    if (strcmp(s[a]->name, s[b]->name) < 0) {
+        return 1;
+    }
+    return s[a]->age < s[b]->age;
+}
+
+void test_slice_person() {
+    person alice = {"Alice", 40};
+    person alice2 = {"Alice", 21};
+    person bob = {"Bob", 55};
+
+    person** s = slice_make(sizeof(person*), 0, 0);
+
+    // TODO: append values to slices, not just pointers. Maybe slice_copyn?
+    s = slice_appendn(s, 3, &alice, &alice2, &bob);
+
+    for (int i = 0; i < 3; ++i) {
+        print_person(s[i]);
+        printf(" ");
+    }
+    printf("\n");
+
+    sort_slice(s, sort_person);
+
+    printf("--Sorted:\n");
+    for (int i = 0; i < 3; ++i) {
+        print_person(s[i]);
+        printf(" ");
+    }
+    printf("\n");
+
+    slice_del(s);
+}
+
 int main() {
     test_slice_int();
     test_slice_char();
     test_slice_slice();
+    test_slice_string();
+    test_slice_person();
 }

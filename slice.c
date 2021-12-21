@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define get_slice_header(slice) (((slice_header*)slice) - 1)
-
 void* slice_make(size_t elem_size, size_t len, size_t capacity) {
     slice_header* s = malloc(capacity * elem_size + sizeof(slice_header));
     char* data = (void*)(s + 1);
@@ -54,6 +52,9 @@ void* slice_appendn(void* slice, size_t n, ...) {
     va_start(args, n);
 
     header = get_slice_header(slice);
+    if (header->capacity == 0) {
+        header->capacity = 1;
+    }
     while (header->len + n > header->capacity) {
         header->capacity *= 2;
         capacity_changed = 1;

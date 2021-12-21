@@ -1,0 +1,13 @@
+Language: Cpp
+BasedOnStyle: Google
+
+# To match GitHub unified diff review view
+ColumnLimit: 100
+
+# Default indentation
+IndentWidth: 4
+
+# When splitting a line, make it obvious that it's not another indented statement
+ContinuationIndentWidth: 4
+
+IncludeBlocks: Regroup

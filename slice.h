@@ -13,6 +13,11 @@ typedef struct _slice_header {
 } slice_header;
 
 /*
+ * Returns a pointer to the internal slice header.
+ */
+#define get_slice_header(slice) (((slice_header*)slice) - 1)
+
+/*
  * Returns a new slice.
  * It is heap allocated to the given length.
  * The content of the allocated space is zero-initialized up to len.
