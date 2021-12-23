@@ -6,9 +6,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-void* slice_make(size_t elem_size, size_t len, size_t capacity) {
-    slice_header* s = malloc(capacity * elem_size + sizeof(slice_header));
-    char* data = (void*)(s + 1);
+typedef struct _slice_header {
+    size_t len;
+    size_t capacity;
+    size_t elem_size;
+} slice_header;
+
+#define get_slice_header(slice) (((slice_header *)slice) - 1)
+
+void *slice_make(size_t elem_size, size_t len, size_t capacity) {
+    slice_header *s = malloc(capacity * elem_size + sizeof(slice_header));
+    char *data = (void *)(s + 1);
     s->len = len;
     s->capacity = capacity;
     s->elem_size = elem_size;
@@ -16,8 +24,8 @@ void* slice_make(size_t elem_size, size_t len, size_t capacity) {
     return data;
 }
 
-void slice_del(void* slice) {
-    slice_header* header = NULL;
+void slice_del(void *slice) {
+    slice_header *header = NULL;
     if (slice == NULL) {
         return;
     }
@@ -25,8 +33,8 @@ void slice_del(void* slice) {
     free(header);
 }
 
-size_t slice_len(const void* slice) {
-    slice_header* header = NULL;
+size_t slice_len(const void *slice) {
+    slice_header *header = NULL;
     if (slice == NULL) {
         return 0;
     }
@@ -34,8 +42,8 @@ size_t slice_len(const void* slice) {
     return header->len;
 }
 
-static slice_header* slice_grow_to_fit(void* slice, size_t n) {
-    slice_header* header = NULL;
+static slice_header *slice_grow_to_fit(void *slice, size_t n) {
+    slice_header *header = NULL;
     int capacity_changed = 0;
 
     header = get_slice_header(slice);
@@ -53,9 +61,9 @@ static slice_header* slice_grow_to_fit(void* slice, size_t n) {
     return header;
 }
 
-void* slice_addn(void* slice, size_t n, ...) {
-    slice_header* header = NULL;
-    char* data = NULL;
+void *slice_addn(void *slice, size_t n, ...) {
+    slice_header *header = NULL;
+    char *data = NULL;
     char c = 0;
     short sh = 0;
     int i = 0;
@@ -72,7 +80,7 @@ void* slice_addn(void* slice, size_t n, ...) {
 
     header = slice_grow_to_fit(slice, n);
 
-    data = (void*)(header + 1);
+    data = (void *)(header + 1);
     data += header->len * header->elem_size;
 
     for (narg = 0; narg < n; ++narg) {
@@ -105,22 +113,22 @@ void* slice_addn(void* slice, size_t n, ...) {
     return header + 1;
 }
 
-void* slice_storen(void* slice, size_t n, ...) {
-    slice_header* header = NULL;
-    char* data = NULL;
+void *slice_storen(void *slice, size_t n, ...) {
+    slice_header *header = NULL;
+    char *data = NULL;
     int narg = 0;
-    void* arg = NULL;
+    void *arg = NULL;
     va_list args;
 
     va_start(args, n);
 
     header = slice_grow_to_fit(slice, n);
 
-    data = (void*)(header + 1);
+    data = (void *)(header + 1);
     data += header->len * header->elem_size;
 
     for (narg = 0; narg < n; ++narg) {
-        arg = va_arg(args, void*);
+        arg = va_arg(args, void *);
         memcpy(data, arg, header->elem_size);
         data += header->elem_size;
     }
@@ -131,11 +139,11 @@ void* slice_storen(void* slice, size_t n, ...) {
     return header + 1;
 }
 
-void* slice_sub(const void* slice, size_t start, int end) {
-    slice_header* header = NULL;
-    const char* begin = NULL;
-    void* new = NULL;
-    slice_header* new_header = NULL;
+void *slice_sub(const void *slice, size_t start, int end) {
+    slice_header *header = NULL;
+    const char *begin = NULL;
+    void *new = NULL;
+    slice_header *new_header = NULL;
     int len = 0;
 
     if (slice == NULL) {
@@ -149,7 +157,7 @@ void* slice_sub(const void* slice, size_t start, int end) {
         return NULL;
     }
 
-    begin = (void*)(header + 1);
+    begin = (void *)(header + 1);
     begin += start * header->elem_size;
     if (end < 0) {
         len = header->len - start + end + 1;
@@ -168,3 +176,68 @@ void* slice_sub(const void* slice, size_t start, int end) {
 
     return new;
 }
+
+/* TODO: implement a quicksort and a stable sort. */
+static void slice_sort_any(void *slice, int (*less)(void *, int, int)) {
+    int i = 0;
+    int j = 0;
+    const int len = slice_len(slice);
+    slice_header *header = NULL;
+    char swapbuf[1000]; /* TODO: need dynamic allocation if the size to swap is bigger. */
+    void *i_data = NULL;
+    void *j_data = NULL;
+    char *data = slice;
+
+    if (slice == NULL) {
+        return;
+    }
+    header = get_slice_header(slice);
+
+    assert(1000 > header->elem_size);
+
+    for (i = 0; i < len; ++i) {
+        for (j = i + 1; j < len; ++j) {
+            if (less(slice, j, i)) {
+                i_data = data + i * header->elem_size;
+                j_data = data + j * header->elem_size;
+                memcpy(swapbuf, i_data, header->elem_size);
+                memcpy(i_data, j_data, header->elem_size);
+                memcpy(j_data, swapbuf, header->elem_size);
+            }
+        }
+    }
+}
+
+#define slice_sort_less(f) ((int (*)(void *, int, int))f)
+
+void slice_sort(void *slice, void *less_func) { slice_sort_any(slice, slice_sort_less(less_func)); }
+
+static int chars_less(char *s, int a, int b) { return s[a] < s[b]; }
+static int uchars_less(unsigned char *s, int a, int b) { return s[a] < s[b]; }
+static int shorts_less(short *s, int a, int b) { return s[a] < s[b]; }
+static int ushorts_less(unsigned short *s, int a, int b) { return s[a] < s[b]; }
+static int ints_less(int *s, int a, int b) { return s[a] < s[b]; }
+static int uints_less(unsigned int *s, int a, int b) { return s[a] < s[b]; }
+static int lls_less(long long *s, int a, int b) { return s[a] < s[b]; }
+static int ulls_less(unsigned long long *s, int a, int b) { return s[a] < s[b]; }
+static int floats_less(float *s, int a, int b) { return s[a] < s[b]; }
+static int doubles_less(double *s, int a, int b) { return s[a] < s[b]; }
+static int cstrings_less(char **s, int a, int b) { return strcmp(s[a], s[b]) < 0; }
+
+void slice_sort_chars(char *slice) { slice_sort_any(slice, slice_sort_less(chars_less)); }
+void slice_sort_uchars(unsigned char *slice) {
+    slice_sort_any(slice, slice_sort_less(uchars_less));
+}
+void slice_sort_shorts(short *slice) { slice_sort_any(slice, slice_sort_less(shorts_less)); }
+void slice_sort_ushorts(unsigned short *slice) {
+    slice_sort_any(slice, slice_sort_less(ushorts_less));
+}
+void slice_sort_ints(int *slice) { slice_sort_any(slice, slice_sort_less(ints_less)); }
+void slice_sort_uints(unsigned int *slice) { slice_sort_any(slice, slice_sort_less(uints_less)); }
+void slice_sort_lls(long long *slice) { slice_sort_any(slice, slice_sort_less(lls_less)); }
+void slice_sort_ulls(unsigned long long *slice) {
+    slice_sort_any(slice, slice_sort_less(ulls_less));
+}
+void slice_sort_floats(float *slice) { slice_sort_any(slice, slice_sort_less(floats_less)); }
+void slice_sort_doubles(double *slice) { slice_sort_any(slice, slice_sort_less(doubles_less)); }
+void slice_sort_cstrings(char **slice) { slice_sort_any(slice, slice_sort_less(cstrings_less)); }

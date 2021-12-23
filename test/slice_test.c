@@ -45,7 +45,7 @@ void test_slice_int() {
     assert(NULL == slice_sub(ints, 30, 31));
     assert(NULL == slice_sub(ints, 3, -50));
 
-    sort_slice(ints, reverse_ints);
+    slice_sort(ints, reverse_ints);
     printf("-- Sorted:\n");
     for (int i = 0; i < slice_len(ints); ++i) {
         printf("%d ", ints[i]);
@@ -63,7 +63,7 @@ void test_slice_char() {
     assert(strcmp("hello world!", s) == 0);
     assert(strcmp("hello", hello) == 0);
 
-    sort_chars(hello);
+    slice_sort_chars(hello);
 
     printf("%s\n", hello);
 
@@ -97,7 +97,7 @@ void test_slice_string() {
     char** s = slice_make(sizeof(char*), 0, 10);
     s = slice_addn(s, 4, "Zinedine", "Vincent", "Alice", "Bob");
 
-    sort_cstrings(s);
+    slice_sort_cstrings(s);
 
     printf("== Sorted:\n");
     for (int i = 0; i < 4; ++i) {
@@ -112,7 +112,7 @@ typedef struct person {
 
 void print_person(const person* p) { printf("[%s age=%d]", p->name, p->age); }
 
-int sort_person(person* s, int a, int b) {
+static int sort_person(person* s, int a, int b) {
     if (strcmp(s[a].name, s[b].name) < 0) {
         return 1;
     }
@@ -134,7 +134,7 @@ void test_slice_person() {
     }
     printf("\n");
 
-    sort_slice(s, sort_person);
+    slice_sort(s, sort_person);
 
     printf("--Sorted:\n");
     for (int i = 0; i < 3; ++i) {

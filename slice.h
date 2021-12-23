@@ -4,23 +4,13 @@
 #include <stddef.h>
 
 /*
- * Header of a slice. It is stored before the pointer used by the API functions.
- */
-typedef struct _slice_header {
-    size_t len;
-    size_t capacity;
-    size_t elem_size;
-} slice_header;
-
-/*
- * Returns a pointer to the internal slice header.
- */
-#define get_slice_header(slice) (((slice_header*)slice) - 1)
-
-/*
  * Returns a new slice.
  * It is heap allocated to the given length.
  * The content of the allocated space is zero-initialized up to len.
+ *
+ * A slice is meant to be used as a C array. So a slice of int should be typed int* and created
+ * with:
+ *      int* int_slice = slice_make(sizeof(int), 0, 10);
  */
 void* slice_make(size_t elem_size, size_t len, size_t capacity);
 
@@ -82,5 +72,30 @@ void* slice_storen(void* slice, size_t n, ...);
  * to slice_len(slice)-1, etc...
  */
 void* slice_sub(const void* slice, size_t start, int end);
+
+/*
+ * Sorts the slice using the provided less function.
+ *
+ * The less function must conform to the following interface:
+ *      int less(T* slice, int a, int b)
+ * Where T is the value type stored in the slice (int for a slice of integers), and a and b are
+ * indices to values in the slice.
+ */
+void slice_sort(void* slice, void* less_func);
+
+/*
+ * The following functions sorts a slice of the given data type in increasing order.
+ */
+void slice_sort_chars(char* slice);
+void slice_sort_uchars(unsigned char* slice);
+void slice_sort_shorts(short* slice);
+void slice_sort_ushorts(unsigned short* slice);
+void slice_sort_ints(int* slice);
+void slice_sort_uints(unsigned int* slice);
+void slice_sort_lls(long long* slice);
+void slice_sort_ulls(unsigned long long* slice);
+void slice_sort_floats(float* slice);
+void slice_sort_doubles(double* slice);
+void slice_sort_cstrings(char** slice);
 
 #endif /* __DELTA_SLICE_H */
