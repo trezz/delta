@@ -112,7 +112,8 @@ typedef struct person {
 
 void print_person(const person* p) { printf("[%s age=%d]", p->name, p->age); }
 
-static int sort_person(person* s, int a, int b) {
+static int sort_person(void* slice, int a, int b) {
+    person* s = slice;
     if (strcmp(s[a].name, s[b].name) < 0) {
         return 1;
     }

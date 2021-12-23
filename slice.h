@@ -75,13 +75,8 @@ void* slice_sub(const void* slice, size_t start, int end);
 
 /*
  * Sorts the slice using the provided less function.
- *
- * The less function must conform to the following interface:
- *      int less(T* slice, int a, int b)
- * Where T is the value type stored in the slice (int for a slice of integers), and a and b are
- * indices to values in the slice.
  */
-void slice_sort(void* slice, void* less_func);
+void slice_sort(void* slice, int (*less_func)(void* /* slice */, int /* a */, int /* b */));
 
 /*
  * The following functions sorts a slice of the given data type in increasing order.
