@@ -5,9 +5,11 @@
 #include <string.h>
 
 #include "../map.h"
-#include "../sort.h"
 
-static int reverse_ints(int* slice, int a, int b) { return slice[a] > slice[b]; }
+static int reverse_ints(void* slice, int a, int b) {
+    int* s = slice;
+    return s[a] > s[b];
+}
 
 void test_slice_int() {
     int* ints = slice_make(sizeof(int), 10, 10);

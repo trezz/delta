@@ -210,7 +210,9 @@ static void slice_sort_any(void *slice, int (*less)(void *, int, int)) {
 
 #define slice_sort_less(f) ((int (*)(void *, int, int))f)
 
-void slice_sort(void *slice, void *less_func) { slice_sort_any(slice, slice_sort_less(less_func)); }
+void slice_sort(void *slice, int (*less_func)(void *, int, int)) {
+    slice_sort_any(slice, slice_sort_less(less_func));
+}
 
 static int chars_less(char *s, int a, int b) { return s[a] < s[b]; }
 static int uchars_less(unsigned char *s, int a, int b) { return s[a] < s[b]; }
