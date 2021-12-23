@@ -5,6 +5,7 @@
 
 #include "./slice.h"
 
+/* TODO: implement a quicksort and a stable sort. */
 static void sort_slice_any(void *slice, int (*less)(void *, int, int)) {
     int i = 0;
     int j = 0;
@@ -35,19 +36,30 @@ static void sort_slice_any(void *slice, int (*less)(void *, int, int)) {
     }
 }
 
-static int sort_slice_chars_less(char *s, int a, int b) { return s[a] < s[b]; }
-static int sort_slice_ints_less(int *s, int a, int b) { return s[a] < s[b]; }
-static int sort_slice_uints_less(unsigned int *s, int a, int b) { return s[a] < s[b]; }
-static int sort_slice_cstrings_less(char **s, int a, int b) { return strcmp(s[a], s[b]) < 0; }
-
 #define sort_less(f) ((int (*)(void *, int, int))f)
 
 void sort_slice(void *slice, void *less_func) { sort_slice_any(slice, sort_less(less_func)); }
 
-void sort_chars(char *slice) { sort_slice_any(slice, sort_less(sort_slice_chars_less)); }
+static int chars_less(char *s, int a, int b) { return s[a] < s[b]; }
+static int uchars_less(unsigned char *s, int a, int b) { return s[a] < s[b]; }
+static int shorts_less(short *s, int a, int b) { return s[a] < s[b]; }
+static int ushorts_less(unsigned short *s, int a, int b) { return s[a] < s[b]; }
+static int ints_less(int *s, int a, int b) { return s[a] < s[b]; }
+static int uints_less(unsigned int *s, int a, int b) { return s[a] < s[b]; }
+static int lls_less(long long *s, int a, int b) { return s[a] < s[b]; }
+static int ulls_less(unsigned long long *s, int a, int b) { return s[a] < s[b]; }
+static int floats_less(float *s, int a, int b) { return s[a] < s[b]; }
+static int doubles_less(double *s, int a, int b) { return s[a] < s[b]; }
+static int cstrings_less(char **s, int a, int b) { return strcmp(s[a], s[b]) < 0; }
 
-void sort_ints(int *slice) { sort_slice_any(slice, sort_less(sort_slice_ints_less)); }
-
-void sort_uints(unsigned int *slice) { sort_slice_any(slice, sort_less(sort_slice_uints_less)); }
-
-void sort_cstrings(char **slice) { sort_slice_any(slice, sort_less(sort_slice_cstrings_less)); }
+void sort_chars(char *slice) { sort_slice_any(slice, sort_less(chars_less)); }
+void sort_uchars(unsigned char *slice) { sort_slice_any(slice, sort_less(uchars_less)); }
+void sort_shorts(short *slice) { sort_slice_any(slice, sort_less(shorts_less)); }
+void sort_ushorts(unsigned short *slice) { sort_slice_any(slice, sort_less(ushorts_less)); }
+void sort_ints(int *slice) { sort_slice_any(slice, sort_less(ints_less)); }
+void sort_uints(unsigned int *slice) { sort_slice_any(slice, sort_less(uints_less)); }
+void sort_lls(long long *slice) { sort_slice_any(slice, sort_less(lls_less)); }
+void sort_ulls(unsigned long long *slice) { sort_slice_any(slice, sort_less(ulls_less)); }
+void sort_floats(float *slice) { sort_slice_any(slice, sort_less(floats_less)); }
+void sort_doubles(double *slice) { sort_slice_any(slice, sort_less(doubles_less)); }
+void sort_cstrings(char **slice) { sort_slice_any(slice, sort_less(cstrings_less)); }

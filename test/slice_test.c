@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../map.h"
 #include "../sort.h"
 
 static int reverse_ints(int* slice, int a, int b) { return slice[a] > slice[b]; }
@@ -18,7 +19,7 @@ void test_slice_int() {
     }
 
     for (int i = 10; i < 21; ++i) {
-        ints = slice_append(ints, i);
+        ints = slice_addlit(ints, i);
         assert(ints != NULL);
     }
 
@@ -56,7 +57,7 @@ void test_slice_int() {
 
 void test_slice_char() {
     char* s = slice_make(sizeof(char), 0, 10);
-    s = slice_appendn(s, 13, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!', '\0');
+    s = slice_addlitn(s, 13, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!', '\0');
     char* hello = slice_sub(s, 0, 5);
 
     assert(strcmp("hello world!", s) == 0);
@@ -94,7 +95,7 @@ void test_slice_slice() {
 
 void test_slice_string() {
     char** s = slice_make(sizeof(char*), 0, 10);
-    s = slice_appendn(s, 4, "Zinedine", "Vincent", "Alice", "Bob");
+    s = slice_addlitn(s, 4, "Zinedine", "Vincent", "Alice", "Bob");
 
     sort_cstrings(s);
 
@@ -111,11 +112,11 @@ typedef struct person {
 
 void print_person(const person* p) { printf("[%s age=%d]", p->name, p->age); }
 
-int sort_person(person** s, int a, int b) {
-    if (strcmp(s[a]->name, s[b]->name) < 0) {
+int sort_person(person* s, int a, int b) {
+    if (strcmp(s[a].name, s[b].name) < 0) {
         return 1;
     }
-    return s[a]->age < s[b]->age;
+    return s[a].age < s[b].age;
 }
 
 void test_slice_person() {
@@ -123,13 +124,12 @@ void test_slice_person() {
     person alice2 = {"Alice", 21};
     person bob = {"Bob", 55};
 
-    person** s = slice_make(sizeof(person*), 0, 0);
+    person* s = slice_make(sizeof(person), 0, 0);
 
-    // TODO: append values to slices, not just pointers. Maybe slice_copyn?
-    s = slice_appendn(s, 3, &alice, &alice2, &bob);
+    s = slice_storen(s, 3, &alice, &alice2, &bob);
 
     for (int i = 0; i < 3; ++i) {
-        print_person(s[i]);
+        print_person(&s[i]);
         printf(" ");
     }
     printf("\n");
@@ -138,12 +138,92 @@ void test_slice_person() {
 
     printf("--Sorted:\n");
     for (int i = 0; i < 3; ++i) {
-        print_person(s[i]);
+        print_person(&s[i]);
         printf(" ");
     }
     printf("\n");
 
     slice_del(s);
+}
+
+struct print_ctx {
+    int n;
+    int len;
+};
+
+static void print_map_int(void* c, const char* key, const void* value) {
+    struct print_ctx* ctx = c;
+    const int* v = value;
+    if (ctx->n == 0) {
+        printf("{\n");
+    }
+    ++ctx->n;
+    printf("  \"%s\": %d", key, *v);
+    if (ctx->n == ctx->len) {
+        printf("\n}\n");
+    } else {
+        printf(",\n");
+    }
+}
+
+void test_map_int() {
+    map_t m = map_make(sizeof(int), 20);
+    assert(0 == map_len(m));
+
+    int i = 0;
+    map_store(m, "zero", &i);
+    i = 10;
+    map_store(m, "ten", &i);
+    i = 3;
+    map_store(m, "three", &i);
+
+    map_add(m, "three", 33);
+    map_add(m, "forty two", 42);
+
+    assert(4 == map_len(m));
+
+    int ok = map_erase(m, "five");
+    assert(!ok);
+    ok = map_erase(m, "zero");
+    assert(ok);
+    assert(3 == map_len(m));
+
+    assert(!map_contains(m, "vincent"));
+    int v;
+    ok = map_get(m, "ten", &v);
+    assert(ok);
+    assert(10 == v);
+    ok = map_get(m, "three", &v);
+    assert(ok);
+    assert(33 == v);
+    ok = map_get(m, "forty two", &v);
+    assert(ok);
+    assert(42 == v);
+
+    struct print_ctx ctx;
+    ctx.len = map_len(m);
+    ctx.n = 0;
+    map_each_ctx(m, print_map_int, &ctx);
+
+    map_print_internals(m);
+
+    map_del(m);
+}
+
+void test_map_big() {
+    map_t m = map_make(sizeof(int), 256);
+    char s[2] = {0, 0};
+
+    for (int i = 33; i < 126; ++i) {
+        s[0] = i;
+        assert(map_add(m, s, 0));
+    }
+
+    map_print_internals(m);
+
+    assert(map_get(m, "f", NULL));
+
+    map_del(m);
 }
 
 int main() {
@@ -152,4 +232,7 @@ int main() {
     test_slice_slice();
     test_slice_string();
     test_slice_person();
+
+    test_map_int();
+    test_map_big();
 }

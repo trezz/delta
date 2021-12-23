@@ -38,7 +38,10 @@ void slice_del(void* slice);
 size_t slice_len(const void* slice);
 
 /*
- * Appends exactly `n` values to the slice and returns the new slice.
+ * Adds exactly `n` literal values to the slice and returns the new slice.
+ *
+ * Literal values may be int, char, etc... and pointers. To store structured
+ * values, use slice_storen.
  *
  * The slice is reallocated if it has not enough capacity to hold the new value.
  *
@@ -47,9 +50,25 @@ size_t slice_len(const void* slice);
  *
  * Appending to a NULL slice is undefined behavior.
  */
-void* slice_appendn(void* slice, size_t n, ...);
+void* slice_addlitn(void* slice, size_t n, ...);
 
-#define slice_append(slice, v) slice_appendn(slice, 1, v)
+#define slice_addlit(slice, v) slice_addlitn(slice, 1, v)
+
+/*
+ * Stores exactly `n` structured values to the slice and returns the new slice.
+ *
+ * Values to store must be passed by pointers. Their content are copied into the slice.
+ *
+ * The slice is reallocated if it has not enough capacity to hold the new value.
+ *
+ * The input slice may be invalidated. Do not attempt to use it after calling this
+ * function.
+ *
+ * Appending to a NULL slice is undefined behavior.
+ */
+void* slice_storen(void* slice, size_t n, ...);
+
+#define slice_store(slice, v) slice_storen(slice, 1, v)
 
 /*
  * Returns a sub slice from the slice with the values in the range [start; end[

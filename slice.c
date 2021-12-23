@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -33,10 +34,28 @@ size_t slice_len(const void* slice) {
     return header->len;
 }
 
-void* slice_appendn(void* slice, size_t n, ...) {
+static slice_header* slice_grow_to_fit(void* slice, size_t n) {
+    slice_header* header = NULL;
+    int capacity_changed = 0;
+
+    header = get_slice_header(slice);
+    if (header->capacity == 0) {
+        header->capacity = 1;
+    }
+    while (header->len + n > header->capacity) {
+        header->capacity *= 2;
+        capacity_changed = 1;
+    }
+    if (capacity_changed) {
+        header = realloc(header, header->capacity * header->elem_size + sizeof(slice_header));
+    }
+
+    return header;
+}
+
+void* slice_addlitn(void* slice, size_t n, ...) {
     slice_header* header = NULL;
     char* data = NULL;
-    int capacity_changed = 0;
     char c = 0;
     short sh = 0;
     int i = 0;
@@ -51,17 +70,7 @@ void* slice_appendn(void* slice, size_t n, ...) {
 
     va_start(args, n);
 
-    header = get_slice_header(slice);
-    if (header->capacity == 0) {
-        header->capacity = 1;
-    }
-    while (header->len + n > header->capacity) {
-        header->capacity *= 2;
-        capacity_changed = 1;
-    }
-    if (capacity_changed) {
-        header = realloc(header, header->capacity * header->elem_size + sizeof(slice_header));
-    }
+    header = slice_grow_to_fit(slice, n);
 
     data = (void*)(header + 1);
     data += header->len * header->elem_size;
@@ -89,6 +98,34 @@ void* slice_appendn(void* slice, size_t n, ...) {
         }
         data += header->elem_size;
     }
+
+    va_end(args);
+
+    header->len += n;
+    return header + 1;
+}
+
+void* slice_storen(void* slice, size_t n, ...) {
+    slice_header* header = NULL;
+    char* data = NULL;
+    int narg = 0;
+    void* arg = NULL;
+    va_list args;
+
+    va_start(args, n);
+
+    header = slice_grow_to_fit(slice, n);
+
+    data = (void*)(header + 1);
+    data += header->len * header->elem_size;
+
+    for (narg = 0; narg < n; ++narg) {
+        arg = va_arg(args, void*);
+        memcpy(data, arg, header->elem_size);
+        data += header->elem_size;
+    }
+
+    va_end(args);
 
     header->len += n;
     return header + 1;
