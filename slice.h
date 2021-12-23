@@ -50,9 +50,9 @@ size_t slice_len(const void* slice);
  *
  * Appending to a NULL slice is undefined behavior.
  */
-void* slice_addlitn(void* slice, size_t n, ...);
+void* slice_addn(void* slice, size_t n, ...);
 
-#define slice_addlit(slice, v) slice_addlitn(slice, 1, v)
+#define slice_add(slice, v) slice_addn(slice, 1, v)
 
 /*
  * Stores exactly `n` structured values to the slice and returns the new slice.
@@ -64,7 +64,7 @@ void* slice_addlitn(void* slice, size_t n, ...);
  * The input slice may be invalidated. Do not attempt to use it after calling this
  * function.
  *
- * Appending to a NULL slice is undefined behavior.
+ * Storing to a NULL slice is undefined behavior.
  */
 void* slice_storen(void* slice, size_t n, ...);
 

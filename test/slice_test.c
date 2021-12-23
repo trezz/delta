@@ -19,7 +19,7 @@ void test_slice_int() {
     }
 
     for (int i = 10; i < 21; ++i) {
-        ints = slice_addlit(ints, i);
+        ints = slice_add(ints, i);
         assert(ints != NULL);
     }
 
@@ -57,7 +57,7 @@ void test_slice_int() {
 
 void test_slice_char() {
     char* s = slice_make(sizeof(char), 0, 10);
-    s = slice_addlitn(s, 13, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!', '\0');
+    s = slice_addn(s, 13, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!', '\0');
     char* hello = slice_sub(s, 0, 5);
 
     assert(strcmp("hello world!", s) == 0);
@@ -95,7 +95,7 @@ void test_slice_slice() {
 
 void test_slice_string() {
     char** s = slice_make(sizeof(char*), 0, 10);
-    s = slice_addlitn(s, 4, "Zinedine", "Vincent", "Alice", "Bob");
+    s = slice_addn(s, 4, "Zinedine", "Vincent", "Alice", "Bob");
 
     sort_cstrings(s);
 

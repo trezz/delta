@@ -53,7 +53,7 @@ static slice_header* slice_grow_to_fit(void* slice, size_t n) {
     return header;
 }
 
-void* slice_addlitn(void* slice, size_t n, ...) {
+void* slice_addn(void* slice, size_t n, ...) {
     slice_header* header = NULL;
     char* data = NULL;
     char c = 0;

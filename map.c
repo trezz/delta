@@ -73,14 +73,16 @@ map_t map_make(size_t value_size, size_t capacity) {
     return m;
 }
 
-static void map_del_data(_map* m) {
+static void map_del_data(_map* m, int del_keys) {
     int i = 0;
     for (i = 0; i < m->nb_buckets; ++i) {
         _map_bucket* b = &m->buckets[i];
         while (b != NULL) {
-            int j = 0;
-            for (j = 0; j < b->len; ++j) {
-                free(b->keys[j]);
+            if (del_keys) {
+                int j = 0;
+                for (j = 0; j < b->len; ++j) {
+                    free(b->keys[j]);
+                }
             }
             free(b->values);
             b = b->next;
@@ -93,7 +95,7 @@ void map_del(map_t m) {
     if (m == NULL) {
         return;
     }
-    map_del_data(m);
+    map_del_data(m, 1);
     free(m);
 }
 
@@ -199,7 +201,27 @@ int map_erase(map_t map, const char* key) {
 
 static void map_inserter(void* ctx, const char* key, const void* v) {
     _map* m = ctx;
-    map_store(m, key, v);
+    _map_bucket* b = NULL;
+    int pos = 0;
+    unsigned long h = 0;
+
+    if (find_bucket_pos(m, key, &h, &b, &pos)) {
+        memcpy(bucket_val(m, b, pos), v, m->value_size);
+        return;
+    }
+    pos = b->len;
+
+    if (pos == MAPB_CAPA) {
+        b->next = malloc(sizeof(_map_bucket));
+        assert(b->next != NULL && (init_new_bucket(m, b->next) == NULL));
+        b = b->next;
+        pos = 0;
+    }
+    memcpy(bucket_val(m, b, pos), v, m->value_size);
+    b->hash[pos] = h;
+    b->keys[pos] = (char*)key; /* Move key */
+    ++b->len;
+    ++m->len;
 }
 
 static _map* map_rehash(_map* m) {
@@ -209,7 +231,7 @@ static _map* map_rehash(_map* m) {
     }
 
     map_each_ctx(m, map_inserter, n);
-    map_del_data(m);
+    map_del_data(m, 0 /* do not delete keys that were moved to the new map */);
     *m = *n;
     return m;
 }
