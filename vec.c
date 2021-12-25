@@ -1,4 +1,4 @@
-#include "./slice.h"
+#include "./vec.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -6,16 +6,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct _slice_header {
+typedef struct _vec_header {
     size_t len;
     size_t capacity;
     size_t elem_size;
-} slice_header;
+} vec_header;
 
-#define get_slice_header(slice) (((slice_header *)slice) - 1)
+#define get_vec_header(vec) (((vec_header *)vec) - 1)
 
-void *slice_make(size_t elem_size, size_t len, size_t capacity) {
-    slice_header *s = malloc(capacity * elem_size + sizeof(slice_header));
+void *vec_make(size_t elem_size, size_t len, size_t capacity) {
+    vec_header *s = malloc(capacity * elem_size + sizeof(vec_header));
     char *data = (void *)(s + 1);
     s->len = len;
     s->capacity = capacity;
@@ -24,29 +24,29 @@ void *slice_make(size_t elem_size, size_t len, size_t capacity) {
     return data;
 }
 
-void slice_del(void *slice) {
-    slice_header *header = NULL;
-    if (slice == NULL) {
+void vec_del(void *vec) {
+    vec_header *header = NULL;
+    if (vec == NULL) {
         return;
     }
-    header = get_slice_header(slice);
+    header = get_vec_header(vec);
     free(header);
 }
 
-size_t slice_len(const void *slice) {
-    slice_header *header = NULL;
-    if (slice == NULL) {
+size_t vec_len(const void *vec) {
+    vec_header *header = NULL;
+    if (vec == NULL) {
         return 0;
     }
-    header = get_slice_header(slice);
+    header = get_vec_header(vec);
     return header->len;
 }
 
-static slice_header *slice_grow_to_fit(void *slice, size_t n) {
-    slice_header *header = NULL;
+static vec_header *vec_grow_to_fit(void *vec, size_t n) {
+    vec_header *header = NULL;
     int capacity_changed = 0;
 
-    header = get_slice_header(slice);
+    header = get_vec_header(vec);
     if (header->capacity == 0) {
         header->capacity = 1;
     }
@@ -55,14 +55,14 @@ static slice_header *slice_grow_to_fit(void *slice, size_t n) {
         capacity_changed = 1;
     }
     if (capacity_changed) {
-        header = realloc(header, header->capacity * header->elem_size + sizeof(slice_header));
+        header = realloc(header, header->capacity * header->elem_size + sizeof(vec_header));
     }
 
     return header;
 }
 
-void *slice_addn(void *slice, size_t n, ...) {
-    slice_header *header = NULL;
+void *vec_appendnv(void *vec, size_t n, ...) {
+    vec_header *header = NULL;
     char *data = NULL;
     char c = 0;
     short sh = 0;
@@ -78,7 +78,7 @@ void *slice_addn(void *slice, size_t n, ...) {
 
     va_start(args, n);
 
-    header = slice_grow_to_fit(slice, n);
+    header = vec_grow_to_fit(vec, n);
 
     data = (void *)(header + 1);
     data += header->len * header->elem_size;
@@ -113,8 +113,8 @@ void *slice_addn(void *slice, size_t n, ...) {
     return header + 1;
 }
 
-void *slice_storen(void *slice, size_t n, ...) {
-    slice_header *header = NULL;
+void *vec_appendn(void *vec, size_t n, ...) {
+    vec_header *header = NULL;
     char *data = NULL;
     int narg = 0;
     void *arg = NULL;
@@ -122,7 +122,7 @@ void *slice_storen(void *slice, size_t n, ...) {
 
     va_start(args, n);
 
-    header = slice_grow_to_fit(slice, n);
+    header = vec_grow_to_fit(vec, n);
 
     data = (void *)(header + 1);
     data += header->len * header->elem_size;
@@ -139,17 +139,48 @@ void *slice_storen(void *slice, size_t n, ...) {
     return header + 1;
 }
 
-void *slice_sub(const void *slice, size_t start, int end) {
-    slice_header *header = NULL;
-    const char *begin = NULL;
-    void *new = NULL;
-    slice_header *new_header = NULL;
-    int len = 0;
+void vec_pop(void *vec) {
+    vec_header *header = NULL;
+    if (vec == NULL) {
+        return;
+    }
+    header = get_vec_header(vec);
+    if (header->len == 0) {
+        return;
+    }
+    --header->len;
+}
 
-    if (slice == NULL) {
+void vec_clear(void *vec) {
+    vec_header *header = NULL;
+    if (vec == NULL) {
+        return;
+    }
+    header = get_vec_header(vec);
+    header->len = 0;
+}
+
+void *vec_back(void *vec) {
+    vec_header *header = NULL;
+    char *data = vec;
+    if (vec == NULL) {
         return NULL;
     }
-    header = get_slice_header(slice);
+    header = get_vec_header(vec);
+    return data + ((header->len - 1) * header->elem_size);
+}
+
+void *vec_sub(const void *vec, size_t start, int end) {
+    vec_header *header = NULL;
+    const char *begin = NULL;
+    void *new = NULL;
+    vec_header *new_header = NULL;
+    int len = 0;
+
+    if (vec == NULL) {
+        return NULL;
+    }
+    header = get_vec_header(vec);
     if (start >= header->len) {
         return NULL;
     }
@@ -169,8 +200,8 @@ void *slice_sub(const void *slice, size_t start, int end) {
         return NULL;
     }
 
-    new = slice_make(header->elem_size, 0, len);
-    new_header = get_slice_header(new);
+    new = vec_make(header->elem_size, 0, len);
+    new_header = get_vec_header(new);
     memcpy(new, begin, len * new_header->elem_size);
     new_header->len = len;
 
@@ -178,26 +209,26 @@ void *slice_sub(const void *slice, size_t start, int end) {
 }
 
 /* TODO: implement a quicksort and a stable sort. */
-static void slice_sort_any(void *slice, int (*less)(void *, int, int)) {
+static void vec_sort_any(void *vec, int (*less)(void *, int, int)) {
     int i = 0;
     int j = 0;
-    const int len = slice_len(slice);
-    slice_header *header = NULL;
+    const int len = vec_len(vec);
+    vec_header *header = NULL;
     char swapbuf[1000]; /* TODO: need dynamic allocation if the size to swap is bigger. */
     void *i_data = NULL;
     void *j_data = NULL;
-    char *data = slice;
+    char *data = vec;
 
-    if (slice == NULL) {
+    if (vec == NULL) {
         return;
     }
-    header = get_slice_header(slice);
+    header = get_vec_header(vec);
 
     assert(1000 > header->elem_size);
 
     for (i = 0; i < len; ++i) {
         for (j = i + 1; j < len; ++j) {
-            if (less(slice, j, i)) {
+            if (less(vec, j, i)) {
                 i_data = data + i * header->elem_size;
                 j_data = data + j * header->elem_size;
                 memcpy(swapbuf, i_data, header->elem_size);
@@ -208,10 +239,10 @@ static void slice_sort_any(void *slice, int (*less)(void *, int, int)) {
     }
 }
 
-#define slice_sort_less(f) ((int (*)(void *, int, int))f)
+#define vec_sort_less(f) ((int (*)(void *, int, int))f)
 
-void slice_sort(void *slice, int (*less_func)(void *, int, int)) {
-    slice_sort_any(slice, slice_sort_less(less_func));
+void vec_sort(void *vec, int (*less_func)(void *, int, int)) {
+    vec_sort_any(vec, vec_sort_less(less_func));
 }
 
 static int chars_less(char *s, int a, int b) { return s[a] < s[b]; }
@@ -226,20 +257,14 @@ static int floats_less(float *s, int a, int b) { return s[a] < s[b]; }
 static int doubles_less(double *s, int a, int b) { return s[a] < s[b]; }
 static int cstrings_less(char **s, int a, int b) { return strcmp(s[a], s[b]) < 0; }
 
-void slice_sort_chars(char *slice) { slice_sort_any(slice, slice_sort_less(chars_less)); }
-void slice_sort_uchars(unsigned char *slice) {
-    slice_sort_any(slice, slice_sort_less(uchars_less));
-}
-void slice_sort_shorts(short *slice) { slice_sort_any(slice, slice_sort_less(shorts_less)); }
-void slice_sort_ushorts(unsigned short *slice) {
-    slice_sort_any(slice, slice_sort_less(ushorts_less));
-}
-void slice_sort_ints(int *slice) { slice_sort_any(slice, slice_sort_less(ints_less)); }
-void slice_sort_uints(unsigned int *slice) { slice_sort_any(slice, slice_sort_less(uints_less)); }
-void slice_sort_lls(long long *slice) { slice_sort_any(slice, slice_sort_less(lls_less)); }
-void slice_sort_ulls(unsigned long long *slice) {
-    slice_sort_any(slice, slice_sort_less(ulls_less));
-}
-void slice_sort_floats(float *slice) { slice_sort_any(slice, slice_sort_less(floats_less)); }
-void slice_sort_doubles(double *slice) { slice_sort_any(slice, slice_sort_less(doubles_less)); }
-void slice_sort_cstrings(char **slice) { slice_sort_any(slice, slice_sort_less(cstrings_less)); }
+void vec_sort_chars(char *vec) { vec_sort_any(vec, vec_sort_less(chars_less)); }
+void vec_sort_uchars(unsigned char *vec) { vec_sort_any(vec, vec_sort_less(uchars_less)); }
+void vec_sort_shorts(short *vec) { vec_sort_any(vec, vec_sort_less(shorts_less)); }
+void vec_sort_ushorts(unsigned short *vec) { vec_sort_any(vec, vec_sort_less(ushorts_less)); }
+void vec_sort_ints(int *vec) { vec_sort_any(vec, vec_sort_less(ints_less)); }
+void vec_sort_uints(unsigned int *vec) { vec_sort_any(vec, vec_sort_less(uints_less)); }
+void vec_sort_lls(long long *vec) { vec_sort_any(vec, vec_sort_less(lls_less)); }
+void vec_sort_ulls(unsigned long long *vec) { vec_sort_any(vec, vec_sort_less(ulls_less)); }
+void vec_sort_floats(float *vec) { vec_sort_any(vec, vec_sort_less(floats_less)); }
+void vec_sort_doubles(double *vec) { vec_sort_any(vec, vec_sort_less(doubles_less)); }
+void vec_sort_cstrings(char **vec) { vec_sort_any(vec, vec_sort_less(cstrings_less)); }

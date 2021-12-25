@@ -44,31 +44,43 @@ int map_erase(map_t map, const char* key);
 
 /*
  * Stores the given key and the associated value pointed to by val_ptr in the map.
+ *
  * Use this function to map strings to structured values.
  * Store to a NULL map is undefined behavior.
+ *
+ * The map is reallocated if it has not enough capacity to hold the new value.
+ *
+ * The input map may be invalidated. Do not attempt to use it after calling this
+ * function.
  */
-int map_store(map_t map, const char* key, const void* val_ptr);
+map_t map_add(map_t map, const char* key, const void* val_ptr);
 
 /*
  * Adds the given key and the associated value in the map.
- * Unlike map_store, the value must be passed by value (map_add(m, "one", 1) adds the pair
+ * Unlike map_add, the value must be passed by value (m = map_addv(m, "one", 1) adds the pair
  * ["one", 1]).
+ *
  * Use this function to map strings to literal values like integers or pointers.
  * Add to a NULL map is undefined behavior.
+ *
+ *
+ * The map is reallocated if it has not enough capacity to hold the new value.
+ *
+ * The input map may be invalidated. Do not attempt to use it after calling this
+ * function.
  */
-int map_add(map_t map, const char* key, ...);
+map_t map_addv(map_t map, const char* key, ...);
 
 /*
  * Iterate on each mapped key/value pairs.
  */
-void map_each(const map_t map, void (*iter_func)(const char* /* key */, const void* /* value */));
+void map_each(const map_t map, void (*iter_func)(const char* /* key */, void* /* value */));
 
 /*
  * Iterate on each mapped key/value pairs with an associated context.
  */
 void map_each_ctx(const map_t map,
-                  void (*iter_func)(void* /* ctx */, const char* /* key */,
-                                    const void* /* value */),
+                  void (*iter_func)(void* /* ctx */, const char* /* key */, void* /* value */),
                   void* ctx);
 
 void map_print_internals(const map_t map);

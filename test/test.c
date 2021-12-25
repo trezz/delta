@@ -1,83 +1,82 @@
-#include "../slice.h"
-
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "../map.h"
+#include "../vec.h"
 
-static int reverse_ints(void* slice, int a, int b) {
-    int* s = slice;
+static int reverse_ints(void* vec, int a, int b) {
+    int* s = vec;
     return s[a] > s[b];
 }
 
-void test_slice_int() {
-    int* ints = slice_make(sizeof(int), 10, 10);
+void test_vec_int() {
+    int* ints = vec_make(sizeof(int), 10, 10);
 
-    assert(slice_len(ints) == 10);
+    assert(vec_len(ints) == 10);
 
     for (int i = 0; i < 10; ++i) {
         ints[i] = i;
     }
 
     for (int i = 10; i < 21; ++i) {
-        ints = slice_add(ints, i);
+        ints = vec_appendv(ints, i);
         assert(ints != NULL);
     }
 
-    assert(slice_len(ints) == 21);
+    assert(vec_len(ints) == 21);
 
     for (int i = 0; i < 21; ++i) {
         assert(ints[i] == i);
     }
 
-    int ends[2] = {-2, slice_len(ints) - 1};
+    int ends[2] = {-2, vec_len(ints) - 1};
     for (int e = 0; e < 2; ++e) {
-        int* teens = slice_sub(ints, 10, ends[e]);
-        for (int i = 0; i < slice_len(teens); ++i) {
+        int* teens = vec_sub(ints, 10, ends[e]);
+        for (int i = 0; i < vec_len(teens); ++i) {
             printf("%d ", teens[i]);
             assert(teens[i] == i + 10);
         }
         printf("\n");
-        slice_del(teens);
+        vec_del(teens);
     }
 
-    assert(NULL == slice_sub(NULL, 1, 3));
-    assert(NULL == slice_sub(ints, 4, 2));
-    assert(NULL == slice_sub(ints, 30, 31));
-    assert(NULL == slice_sub(ints, 3, -50));
+    assert(NULL == vec_sub(NULL, 1, 3));
+    assert(NULL == vec_sub(ints, 4, 2));
+    assert(NULL == vec_sub(ints, 30, 31));
+    assert(NULL == vec_sub(ints, 3, -50));
 
-    slice_sort(ints, reverse_ints);
+    vec_sort(ints, reverse_ints);
     printf("-- Sorted:\n");
-    for (int i = 0; i < slice_len(ints); ++i) {
+    for (int i = 0; i < vec_len(ints); ++i) {
         printf("%d ", ints[i]);
     }
     printf("\n");
 
-    slice_del(ints);
+    vec_del(ints);
 }
 
-void test_slice_char() {
-    char* s = slice_make(sizeof(char), 0, 10);
-    s = slice_addn(s, 13, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!', '\0');
-    char* hello = slice_sub(s, 0, 5);
+void test_vec_char() {
+    char* s = vec_make(sizeof(char), 0, 10);
+    s = vec_appendnv(s, 13, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd', '!', '\0');
+    char* hello = vec_sub(s, 0, 5);
 
     assert(strcmp("hello world!", s) == 0);
     assert(strcmp("hello", hello) == 0);
 
-    slice_sort_chars(hello);
+    vec_sort_chars(hello);
 
     printf("%s\n", hello);
 
-    slice_del(hello);
-    slice_del(s);
+    vec_del(hello);
+    vec_del(s);
 }
 
-void test_slice_slice() {
+void test_vec_vec() {
     char c = 'a';
-    char** m = slice_make(sizeof(char*), 5, 5);
+    char** m = vec_make(sizeof(char*), 5, 5);
     for (int i = 0; i < 5; ++i) {
-        m[i] = slice_make(sizeof(char), 5, 5);
+        m[i] = vec_make(sizeof(char), 5, 5);
         for (int j = 0; j < 5; ++j) {
             m[i][j] = c++;
         }
@@ -89,17 +88,17 @@ void test_slice_slice() {
             printf("%c ", m[i][j]);
             assert(c++ == m[i][j]);
         }
-        slice_del(m[i]);
+        vec_del(m[i]);
         printf("\n");
     }
-    slice_del(m);
+    vec_del(m);
 }
 
-void test_slice_string() {
-    char** s = slice_make(sizeof(char*), 0, 10);
-    s = slice_addn(s, 4, "Zinedine", "Vincent", "Alice", "Bob");
+void test_vec_string() {
+    char** s = vec_make(sizeof(char*), 0, 10);
+    s = vec_appendnv(s, 4, "Zinedine", "Vincent", "Alice", "Bob");
 
-    slice_sort_cstrings(s);
+    vec_sort_cstrings(s);
 
     printf("== Sorted:\n");
     for (int i = 0; i < 4; ++i) {
@@ -114,22 +113,22 @@ typedef struct person {
 
 void print_person(const person* p) { printf("[%s age=%d]", p->name, p->age); }
 
-static int sort_person(void* slice, int a, int b) {
-    person* s = slice;
+static int sort_person(void* vec, int a, int b) {
+    person* s = vec;
     if (strcmp(s[a].name, s[b].name) < 0) {
         return 1;
     }
     return s[a].age < s[b].age;
 }
 
-void test_slice_person() {
+void test_vec_person() {
     person alice = {"Alice", 40};
     person alice2 = {"Alice", 21};
     person bob = {"Bob", 55};
 
-    person* s = slice_make(sizeof(person), 0, 0);
+    person* s = vec_make(sizeof(person), 0, 0);
 
-    s = slice_storen(s, 3, &alice, &alice2, &bob);
+    s = vec_appendn(s, 3, &alice, &alice2, &bob);
 
     for (int i = 0; i < 3; ++i) {
         print_person(&s[i]);
@@ -137,7 +136,7 @@ void test_slice_person() {
     }
     printf("\n");
 
-    slice_sort(s, sort_person);
+    vec_sort(s, sort_person);
 
     printf("--Sorted:\n");
     for (int i = 0; i < 3; ++i) {
@@ -146,7 +145,7 @@ void test_slice_person() {
     }
     printf("\n");
 
-    slice_del(s);
+    vec_del(s);
 }
 
 struct print_ctx {
@@ -154,7 +153,7 @@ struct print_ctx {
     int len;
 };
 
-static void print_map_int(void* c, const char* key, const void* value) {
+static void print_map_int(void* c, const char* key, void* value) {
     struct print_ctx* ctx = c;
     const int* v = value;
     if (ctx->n == 0) {
@@ -174,14 +173,14 @@ void test_map_int() {
     assert(0 == map_len(m));
 
     int i = 0;
-    map_store(m, "zero", &i);
+    m = map_add(m, "zero", &i);
     i = 10;
-    map_store(m, "ten", &i);
+    m = map_add(m, "ten", &i);
     i = 3;
-    map_store(m, "three", &i);
+    m = map_add(m, "three", &i);
 
-    map_add(m, "three", 33);
-    map_add(m, "forty two", 42);
+    m = map_addv(m, "three", 33);
+    m = map_addv(m, "forty two", 42);
 
     assert(4 == map_len(m));
 
@@ -219,7 +218,7 @@ void test_map_big() {
 
     for (int i = 33; i < 126; ++i) {
         s[0] = i;
-        assert(map_add(m, s, 0));
+        assert(m = map_addv(m, s, 0));
     }
 
     map_print_internals(m);
@@ -230,11 +229,11 @@ void test_map_big() {
 }
 
 int main() {
-    test_slice_int();
-    test_slice_char();
-    test_slice_slice();
-    test_slice_string();
-    test_slice_person();
+    test_vec_int();
+    test_vec_char();
+    test_vec_vec();
+    test_vec_string();
+    test_vec_person();
 
     test_map_int();
     test_map_big();

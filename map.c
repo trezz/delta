@@ -199,7 +199,7 @@ int map_erase(map_t map, const char* key) {
     return 1;
 }
 
-static void map_inserter(void* ctx, const char* key, const void* v) {
+static void map_inserter(void* ctx, const char* key, void* v) {
     _map* m = ctx;
     _map_bucket* b = NULL;
     int pos = 0;
@@ -232,11 +232,11 @@ static _map* map_rehash(_map* m) {
 
     map_each_ctx(m, map_inserter, n);
     map_del_data(m, 0 /* do not delete keys that were moved to the new map */);
-    *m = *n;
-    return m;
+    free(m);
+    return n;
 }
 
-int map_store(map_t map, const char* key, const void* val_ptr) {
+map_t map_add(map_t map, const char* key, const void* val_ptr) {
     _map* m = map;
     _map_bucket* b = NULL;
     int pos = 0;
@@ -245,21 +245,21 @@ int map_store(map_t map, const char* key, const void* val_ptr) {
 
     load_factor /= (float)m->nb_buckets;
     if (load_factor > MAP_MAX_LOAD_FACTOR) {
-        if (map_rehash(m) == NULL) {
-            return 0;
+        if ((m = map_rehash(m)) == NULL) {
+            return NULL;
         }
     }
 
     if (find_bucket_pos(m, key, &h, &b, &pos)) {
         memcpy(bucket_val(m, b, pos), val_ptr, m->value_size);
-        return 1;
+        return m;
     }
     pos = b->len;
 
     if (pos == MAPB_CAPA) {
         b->next = malloc(sizeof(_map_bucket));
         if (b->next == NULL || (init_new_bucket(m, b->next) == NULL)) {
-            return 0;
+            return NULL;
         }
         b = b->next;
         pos = 0;
@@ -270,10 +270,10 @@ int map_store(map_t map, const char* key, const void* val_ptr) {
     b->keys[pos] = strdup(key);
     ++b->len;
     ++m->len;
-    return 1;
+    return m;
 }
 
-int map_add(map_t map, const char* key, ...) {
+map_t map_addv(map_t map, const char* key, ...) {
     _map* m = map;
     char c = 0;
     short sh = 0;
@@ -293,22 +293,22 @@ int map_add(map_t map, const char* key, ...) {
     switch (m->value_size) {
         case 1:
             c = (char)ll;
-            return map_store(m, key, &c);
+            return map_add(m, key, &c);
         case 2:
             sh = (short)ll;
-            return map_store(m, key, &sh);
+            return map_add(m, key, &sh);
         case 4:
             i = (int)ll;
-            return map_store(m, key, &i);
+            return map_add(m, key, &i);
         case 8:
-            return map_store(m, key, &ll);
+            return map_add(m, key, &ll);
         default:
             assert(0 && "unsupported value data size");
     }
-    return 0;
+    return NULL;
 }
 
-void map_each(const map_t map, void (*iter_func)(const char*, const void*)) {
+void map_each(const map_t map, void (*iter_func)(const char*, void*)) {
     const _map* m = map;
     int i = 0;
     for (i = 0; i < m->nb_buckets; ++i) {
@@ -323,7 +323,7 @@ void map_each(const map_t map, void (*iter_func)(const char*, const void*)) {
     }
 }
 
-void map_each_ctx(const map_t map, void (*iter_func)(void*, const char*, const void*), void* ctx) {
+void map_each_ctx(const map_t map, void (*iter_func)(void*, const char*, void*), void* ctx) {
     const _map* m = map;
     int i = 0;
     for (i = 0; i < m->nb_buckets; ++i) {
