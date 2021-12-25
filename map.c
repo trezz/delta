@@ -213,8 +213,9 @@ static void map_inserter(void* ctx, const char* key, void* v) {
 
     if (pos == MAPB_CAPA) {
         b->next = malloc(sizeof(_map_bucket));
-        assert(b->next != NULL && (init_new_bucket(m, b->next) == NULL));
-        b = b->next;
+        assert(b->next != NULL);
+        b = init_new_bucket(m, b->next);
+        assert(b != NULL);
         pos = 0;
     }
     memcpy(bucket_val(m, b, pos), v, m->value_size);
