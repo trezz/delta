@@ -116,14 +116,20 @@ size_t map_len(const map_t map) {
  *
  * TODO: faster hash function.
  */
-static unsigned long hash(const _map* m, const char* s) {
+static unsigned long hash(const _map* m, const char* s, size_t len) {
     unsigned long h = m->hash_seed;
+    size_t* input = (void*)s;
+    size_t input_len = len / sizeof(size_t);
+    int i = 0;
     int c;
 
-    while ((c = *s++) != 0) {
-        h = ((h << 5) + h) + c; /* hash * 33 + c */
+    for (i = 0; i < input_len; ++i) {
+        h = ((h << 5) + h) + input[i];
     }
-
+    s += input_len * sizeof(size_t);
+    while ((c = *s++) != 0) {
+        h = ((h << 5) + h) + c;
+    }
     return h;
 }
 
@@ -134,9 +140,10 @@ static unsigned long hash(const _map* m, const char* s) {
  * Finds the map bucket holding the given key and returns true if the key was found.
  * If the key is not in the map, the bucket that is expected to store the key is returned.
  */
-static int find_bucket_pos(const _map* m, const char* key, unsigned long* out_key_hash,
-                           _map_bucket** found_bucket, int* found_pos) {
-    const unsigned long h = hash(m, key);
+static int find_bucket_pos(const _map* m, const char* key, size_t key_len,
+                           unsigned long* out_key_hash, _map_bucket** found_bucket,
+                           int* found_pos) {
+    const unsigned long h = hash(m, key, key_len);
     const size_t bpos = bucket_pos(m, h);
     _map_bucket* b = &m->buckets[bpos];
     int i = 0;
@@ -173,8 +180,9 @@ int map_get(const map_t map, const char* key, void* v) {
     _map_bucket* b = NULL;
     int pos = 0;
     unsigned long h = 0;
+    const size_t key_len = strlen(key);
 
-    if (!find_bucket_pos(m, key, &h, &b, &pos)) {
+    if (!find_bucket_pos(m, key, key_len, &h, &b, &pos)) {
         return 0;
     }
     if (v != NULL) {
@@ -189,8 +197,9 @@ int map_erase(map_t map, const char* key) {
     _map_bucket* b = NULL;
     int pos = 0;
     unsigned long h = 0;
+    const size_t key_len = strlen(key);
 
-    if (!find_bucket_pos(m, key, &h, &b, &pos)) {
+    if (!find_bucket_pos(m, key, key_len, &h, &b, &pos)) {
         return 0;
     }
     if (b->len > 1) {
@@ -226,8 +235,9 @@ static void* map_insert(_map* m, const char* key, const void* val_ptr) {
     _map_bucket* b = NULL;
     int pos = 0;
     unsigned long h = 0;
+    const size_t key_len = strlen(key);
 
-    if (find_bucket_pos(m, key, &h, &b, &pos)) {
+    if (find_bucket_pos(m, key, key_len, &h, &b, &pos)) {
         memcpy(bucket_val(m, b, pos), val_ptr, m->value_size);
         return m;
     }
