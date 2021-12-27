@@ -153,46 +153,46 @@ struct print_ctx {
     int len;
 };
 
-static void print_map_int(void* c, const char* key, void* value) { struct print_ctx* ctx = c; }
+static void print_strmap_int(void* c, const char* key, void* value) { struct print_ctx* ctx = c; }
 
-void test_map_int() {
-    map_t m = map_make(sizeof(int), 20);
-    assert(0 == map_len(m));
+void test_strmap_int() {
+    strmap_t m = strmap_make(sizeof(int), 20);
+    assert(0 == strmap_len(m));
 
     int i = 0;
-    m = map_addp(m, "zero", &i);
+    m = strmap_addp(m, "zero", &i);
     i = 10;
-    m = map_addp(m, "ten", &i);
+    m = strmap_addp(m, "ten", &i);
     i = 3;
-    m = map_addp(m, "three", &i);
+    m = strmap_addp(m, "three", &i);
 
-    m = map_addv(m, "three", 33);
-    m = map_addv(m, "forty two", 42);
+    m = strmap_addv(m, "three", 33);
+    m = strmap_addv(m, "forty two", 42);
 
-    assert(4 == map_len(m));
+    assert(4 == strmap_len(m));
 
-    int ok = map_erase(m, "five");
+    int ok = strmap_erase(m, "five");
     assert(!ok);
-    ok = map_erase(m, "zero");
+    ok = strmap_erase(m, "zero");
     assert(ok);
-    assert(3 == map_len(m));
+    assert(3 == strmap_len(m));
 
-    assert(!map_contains(m, "vincent"));
+    assert(!strmap_contains(m, "vincent"));
     int v;
-    ok = map_get(m, "ten", &v);
+    ok = strmap_get(m, "ten", &v);
     assert(ok);
     assert(10 == v);
-    ok = map_get(m, "three", &v);
+    ok = strmap_get(m, "three", &v);
     assert(ok);
     assert(33 == v);
-    ok = map_get(m, "forty two", &v);
+    ok = strmap_get(m, "forty two", &v);
     assert(ok);
     assert(42 == v);
 
     struct print_ctx ctx;
-    ctx.len = map_len(m);
+    ctx.len = strmap_len(m);
     ctx.n = 0;
-    for (map_iterator_t it = map_iterator(m); map_next(&it);) {
+    for (strmap_iterator_t it = strmap_iterator(m); strmap_next(&it);) {
         const int* v = it.value;
         if (ctx.n == 0) {
             printf("{\n");
@@ -206,21 +206,21 @@ void test_map_int() {
         }
     }
 
-    map_del(m);
+    strmap_del(m);
 }
 
-void test_map_big() {
-    map_t m = map_make(sizeof(int), 256);
+void test_strmap_big() {
+    strmap_t m = strmap_make(sizeof(int), 256);
     char s[2] = {0, 0};
 
     for (int i = 33; i < 126; ++i) {
         s[0] = i;
-        assert(m = map_addv(m, s, 0));
+        assert(m = strmap_addv(m, s, 0));
     }
 
-    assert(map_get(m, "f", NULL));
+    assert(strmap_get(m, "f", NULL));
 
-    map_del(m);
+    strmap_del(m);
 }
 
 int main() {
@@ -230,6 +230,6 @@ int main() {
     test_vec_string();
     test_vec_person();
 
-    test_map_int();
-    test_map_big();
+    test_strmap_int();
+    test_strmap_big();
 }
