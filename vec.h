@@ -31,7 +31,7 @@ size_t vec_len(const void* vec);
  * Appends exactly `n` literal values to the vec and returns the new vec.
  *
  * Literal values may be int, char, etc... and pointers. To store structured
- * values, use vec_appendn.
+ * values, use vec_appendnp.
  *
  * The vec is reallocated if it has not enough capacity to hold the new value.
  *
@@ -56,9 +56,9 @@ void* vec_appendnv(void* vec, size_t n, ...);
  *
  * Storing to a NULL vec is undefined behavior.
  */
-void* vec_appendn(void* vec, size_t n, ...);
+void* vec_appendnp(void* vec, size_t n, ...);
 
-#define vec_append(vec, ptr) vec_appendn(vec, 1, ptr)
+#define vec_appendp(vec, ptr) vec_appendnp(vec, 1, ptr)
 
 /*
  * Pops the last vec value and decreases the vec size by one.

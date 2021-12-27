@@ -1,4 +1,4 @@
-#include "./map.h"
+#include "map.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -17,11 +17,12 @@ typedef struct _map_bucket {
     struct _map_bucket* next;
 } _map_bucket;
 
-typedef struct map {
+typedef struct _map {
     unsigned long hash_seed;
     size_t value_size;
     size_t len;
     size_t capacity;
+
     size_t nb_buckets;
     _map_bucket* buckets;
 } _map;
@@ -81,7 +82,7 @@ static void map_del_data(_map* m, int del_keys) {
             if (del_keys) {
                 int j = 0;
                 for (j = 0; j < b->len; ++j) {
-                    free(b->keys[j]);
+                    free(b->keys[j]); /* TODO: store keys in a big buffer to alloc and free once */
                 }
             }
             free(b->values);
@@ -123,8 +124,8 @@ static unsigned long hash(const _map* m, const char* s) {
     return h;
 }
 
-#define bucket_pos(m, h) (h & (m->nb_buckets - 1))
-#define bucket_val(m, b, i) (b->values + ((i)*m->value_size))
+#define bucket_pos(m, h) ((h) & ((m)->nb_buckets - 1))
+#define bucket_val(m, b, i) ((b)->values + ((i) * (m)->value_size))
 
 /*
  * Finds the map bucket holding the given key and returns true if the key was found.
@@ -199,49 +200,54 @@ int map_erase(map_t map, const char* key) {
     return 1;
 }
 
-static void map_inserter(void* ctx, const char* key, void* v) {
-    _map* m = ctx;
+static void* map_insert(_map* m, const char* key, const void* val_ptr, int copy_key) {
     _map_bucket* b = NULL;
     int pos = 0;
     unsigned long h = 0;
 
     if (find_bucket_pos(m, key, &h, &b, &pos)) {
-        memcpy(bucket_val(m, b, pos), v, m->value_size);
-        return;
+        memcpy(bucket_val(m, b, pos), val_ptr, m->value_size);
+        return m;
     }
     pos = b->len;
 
     if (pos == MAPB_CAPA) {
-        b->next = malloc(sizeof(_map_bucket));
-        assert(b->next != NULL);
-        b = init_new_bucket(m, b->next);
-        assert(b != NULL);
+        if ((b->next = malloc(sizeof(_map_bucket))) == NULL) {
+            return NULL;
+        }
+        if ((b = init_new_bucket(m, b->next)) == NULL) {
+            return NULL;
+        }
         pos = 0;
     }
-    memcpy(bucket_val(m, b, pos), v, m->value_size);
+    memcpy(bucket_val(m, b, pos), val_ptr, m->value_size);
     b->hash[pos] = h;
-    b->keys[pos] = (char*)key; /* Move key */
+    b->keys[pos] = (copy_key ? strdup(key) : (char*)key);
     ++b->len;
     ++m->len;
+    return m;
 }
 
 static _map* map_rehash(_map* m) {
     _map* n = map_make(m->value_size, m->capacity * 2);
+    map_iterator_t it = map_iterator(m);
     if (n == NULL) {
         return NULL;
     }
 
-    map_each_ctx(m, map_inserter, n);
-    map_del_data(m, 0 /* do not delete keys that were moved to the new map */);
+    while (map_next(&it)) {
+        if (map_insert(n, it.key, it.value, 0 /* Move keys. */) == NULL) {
+            return NULL;
+        }
+    }
+
+    map_del_data(m, 0 /* Do not delete keys that were moved to the new map. */);
     free(m);
     return n;
 }
 
-map_t map_add(map_t map, const char* key, const void* val_ptr) {
+map_t map_addp(map_t map, const char* key, const void* val_ptr) {
     _map* m = map;
-    _map_bucket* b = NULL;
-    int pos = 0;
-    unsigned long h = 0;
     float load_factor = m->len;
 
     load_factor /= (float)m->nb_buckets;
@@ -251,27 +257,7 @@ map_t map_add(map_t map, const char* key, const void* val_ptr) {
         }
     }
 
-    if (find_bucket_pos(m, key, &h, &b, &pos)) {
-        memcpy(bucket_val(m, b, pos), val_ptr, m->value_size);
-        return m;
-    }
-    pos = b->len;
-
-    if (pos == MAPB_CAPA) {
-        b->next = malloc(sizeof(_map_bucket));
-        if (b->next == NULL || (init_new_bucket(m, b->next) == NULL)) {
-            return NULL;
-        }
-        b = b->next;
-        pos = 0;
-    }
-
-    memcpy(bucket_val(m, b, pos), val_ptr, m->value_size);
-    b->hash[pos] = h;
-    b->keys[pos] = strdup(key);
-    ++b->len;
-    ++m->len;
-    return m;
+    return map_insert(m, key, val_ptr, 1 /* Copy key. */);
 }
 
 map_t map_addv(map_t map, const char* key, ...) {
@@ -294,76 +280,56 @@ map_t map_addv(map_t map, const char* key, ...) {
     switch (m->value_size) {
         case 1:
             c = (char)ll;
-            return map_add(m, key, &c);
+            return map_addp(m, key, &c);
         case 2:
             sh = (short)ll;
-            return map_add(m, key, &sh);
+            return map_addp(m, key, &sh);
         case 4:
             i = (int)ll;
-            return map_add(m, key, &i);
+            return map_addp(m, key, &i);
         case 8:
-            return map_add(m, key, &ll);
+            return map_addp(m, key, &ll);
         default:
             assert(0 && "unsupported value data size");
     }
     return NULL;
 }
 
-void map_each(const map_t map, void (*iter_func)(const char*, void*)) {
+map_iterator_t map_iterator(const map_t map) {
     const _map* m = map;
-    int i = 0;
-    for (i = 0; i < m->nb_buckets; ++i) {
-        const _map_bucket* b = &m->buckets[i];
-        while (b != NULL) {
-            int j = 0;
-            for (j = 0; j < b->len; ++j) {
-                iter_func(b->keys[j], bucket_val(m, b, j));
-            }
-            b = b->next;
-        }
+    map_iterator_t it;
+
+    it.key = NULL;
+    it.value = NULL;
+    it._map = map;
+    it._bpos = 0;
+    it._kpos = 0;
+
+    if (m->len == 0) {
+        return it;
     }
+    it._b = &m->buckets[0];
+    return it;
 }
 
-void map_each_ctx(const map_t map, void (*iter_func)(void*, const char*, void*), void* ctx) {
-    const _map* m = map;
-    int i = 0;
-    for (i = 0; i < m->nb_buckets; ++i) {
-        const _map_bucket* b = &m->buckets[i];
-        while (b != NULL) {
-            int j = 0;
-            for (j = 0; j < b->len; ++j) {
-                iter_func(ctx, b->keys[j], bucket_val(m, b, j));
-            }
-            b = b->next;
+int map_next(map_iterator_t* it) {
+    const _map* m = it->_map;
+
+    while (it->_bpos < m->nb_buckets) {
+        _map_bucket* b = it->_b;
+        for (; b != NULL; it->_b = b = b->next, it->_kpos = 0) {
+            if (it->_kpos < b->len) {
+                it->key = b->keys[it->_kpos];
+                it->value = bucket_val(m, b, it->_kpos);
+                ++it->_kpos;
+                return 1;
+            };
         }
-    }
-}
-
-void map_print_internals(const map_t map) {
-    const _map* m = map;
-    int i = 0;
-
-    printf("--\n");
-    printf("hash seed: %lu\n", m->hash_seed);
-    printf("value size: %zu\n", m->value_size);
-    printf("len: %zu\n", m->len);
-    printf("capacity: %zu\n", m->capacity);
-    printf("nb buckets: %zu\n", m->nb_buckets);
-    printf("--\n");
-
-    for (i = 0; i < m->nb_buckets; ++i) {
-        const _map_bucket* b = &m->buckets[i];
-        int k = 0;
-        for (k = 0; b != NULL; b = b->next, ++k) {
-            int j = 0;
-            printf("[%d|%d]\tlen=%zu\t{", i, k, b->len);
-            for (j = 0; j < b->len; ++j) {
-                printf(" [%d] \"%s\"", j, b->keys[j]);
-                if (j + 1 < b->len) {
-                    printf(",");
-                }
-            }
-            printf(" }\n");
+        it->_kpos = 0;
+        if (++it->_bpos == m->nb_buckets) {
+            return 0;
         }
+        it->_b = &m->buckets[it->_bpos];
     }
+    return 0;
 }

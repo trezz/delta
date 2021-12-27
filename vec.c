@@ -113,7 +113,7 @@ void *vec_appendnv(void *vec, size_t n, ...) {
     return header + 1;
 }
 
-void *vec_appendn(void *vec, size_t n, ...) {
+void *vec_appendnp(void *vec, size_t n, ...) {
     vec_header *header = NULL;
     char *data = NULL;
     int narg = 0;

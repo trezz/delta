@@ -53,11 +53,11 @@ int map_erase(map_t map, const char* key);
  * The input map may be invalidated. Do not attempt to use it after calling this
  * function.
  */
-map_t map_add(map_t map, const char* key, const void* val_ptr);
+map_t map_addp(map_t map, const char* key, const void* val_ptr);
 
 /*
  * Adds the given key and the associated value in the map.
- * Unlike map_add, the value must be passed by value (m = map_addv(m, "one", 1) adds the pair
+ * Unlike map_addp, the value must be passed by value (m = map_addv(m, "one", 1) adds the pair
  * ["one", 1]).
  *
  * Use this function to map strings to literal values like integers or pointers.
@@ -72,17 +72,31 @@ map_t map_add(map_t map, const char* key, const void* val_ptr);
 map_t map_addv(map_t map, const char* key, ...);
 
 /*
- * Iterate on each mapped key/value pairs.
+ * An iterator on a map.
  */
-void map_each(const map_t map, void (*iter_func)(const char* /* key */, void* /* value */));
+typedef struct map_iterator {
+    const char* key;
+    void* value;
+
+    map_t _map;
+    void* _b;
+    size_t _bpos;
+    size_t _kpos;
+} map_iterator_t;
 
 /*
- * Iterate on each mapped key/value pairs with an associated context.
+ * Returns an iterator on the map.
+ * The returned iterator is initialized to iterate on the map, but doesn't points to any key/value
+ * pair yet. A call to map_next is required to set the iterator on the first key/value pair.
  */
-void map_each_ctx(const map_t map,
-                  void (*iter_func)(void* /* ctx */, const char* /* key */, void* /* value */),
-                  void* ctx);
+map_iterator_t map_iterator(const map_t map);
 
-void map_print_internals(const map_t map);
+/*
+ * Move the given iterator to the next key/value pair of the map, or to the first key/value pair if
+ * the iterator was just initialized by map_iterator.
+ * If the function returns 0, the iteration reached the end of the map and the iterator state is
+ * undefined, otherwise the iterator is pointing to a key/value pair of the map.
+ */
+int map_next(map_iterator_t* it);
 
 #endif /* __DELTA_MAP_H */

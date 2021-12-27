@@ -184,9 +184,14 @@ typedef struct qex {
 } qex_t;
 
 static void qex_init(qex_t* q, char* range) {
-    q->_queries_in_range = map_make(sizeof(size_t), 1000);
-    q->_popular_queries = map_make(sizeof(void*), 1000);
+    q->_queries_in_range = map_make(sizeof(size_t), 0);
+    q->_popular_queries = map_make(sizeof(void*), 0);
     parse_range(&q->_user_range, range);
+}
+
+static void qex_del(qex_t* q) {
+    map_del(q->_queries_in_range);
+    map_del(q->_popular_queries);
 }
 
 static int qex_is_equal(const range_t* range, const range_t* user_range) {
@@ -238,41 +243,32 @@ static char* index_tsv_line(qex_t* q, char* line, size_t lineno) {
     return *line != 0 ? line : 0;
 }
 
-static size_t num_distinct_queries(qex_t* q) { return map_len(q->_queries_in_range); }
-
-static void popular_queries_builder(void* ctx, const char* key, void* v) {
-    qex_t* q = ctx;
-    size_t n = *(int*)v;
-    char buf[100];
-
-    sprintf(buf, "%zu", n);
-
-    char** queries = NULL;
-    if (!map_get(q->_popular_queries, buf, &queries)) {
-        queries = vec_make(sizeof(char*), 0, 10);
-    }
-    queries = vec_appendv(queries, key);
-    q->_popular_queries = map_addv(q->_popular_queries, buf, queries);
-}
-
 static void build_most_popular_queries_set(qex_t* q) {
-    map_each_ctx(q->_queries_in_range, popular_queries_builder, q);
-}
+    for (map_iterator_t it = map_iterator(q->_queries_in_range); map_next(&it);) {
+        size_t n = *(int*)it.value;
+        char buf[100];
 
-static void popular_queries_n_harvester(void* ctx, const char* key, void* v) {
-    char*** ns = ctx;
-    *ns = vec_appendv(*ns, key);
+        sprintf(buf, "%zu", n);
+
+        char** queries = NULL;
+        if (!map_get(q->_popular_queries, buf, &queries)) {
+            queries = vec_make(sizeof(char*), 0, 10);
+        }
+        queries = vec_appendv(queries, it.key);
+        q->_popular_queries = map_addv(q->_popular_queries, buf, queries);
+    }
 }
 
 static int popular_queries_sorter(void* vec, int a, int b) {
     char** v = vec;
-    typeof(v) x = NULL;
     return atoi(v[a]) > atoi(v[b]);
 }
 
 static void print_nth_most_popular_queries(qex_t* q, size_t num) {
     char** ns = vec_make(sizeof(char*), 0, map_len(q->_popular_queries));
-    map_each_ctx(q->_popular_queries, popular_queries_n_harvester, &ns);
+    for (map_iterator_t it = map_iterator(q->_popular_queries); map_next(&it);) {
+        ns = vec_appendv(ns, it.key);
+    }
     vec_sort(ns, popular_queries_sorter);
     for (int i = 0; i < vec_len(ns); ++i) {
         char* num_queries = ns[i];
@@ -286,11 +282,6 @@ static void print_nth_most_popular_queries(qex_t* q, size_t num) {
             printf("%s %s\n", query, num_queries);
         }
     }
-}
-
-static void buffer_deleter(const char* key, void* v) {
-    char* buf = v;
-    free(buf);
 }
 
 /************************* Entry point ***************************************/
@@ -336,13 +327,18 @@ int main(int argc, char** argv) {
 
     /* extract queries based on input arguments */
     if (args.num == 0) {
-        printf("%zu\n", num_distinct_queries(&qex));
+        printf("%zu\n", map_len(qex._queries_in_range));
     } else {
         build_most_popular_queries_set(&qex);
         print_nth_most_popular_queries(&qex, args.num);
     }
 
-    map_each(buffers, buffer_deleter);
-    // TODO: delete maps from qex.
+    for (map_iterator_t it = map_iterator(buffers); map_next(&it);) {
+        char** buffer = it.value;
+        free(*buffer);
+    }
+    map_del(buffers);
+    qex_del(&qex);
+
     return 0;
 }

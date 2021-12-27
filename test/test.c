@@ -128,7 +128,7 @@ void test_vec_person() {
 
     person* s = vec_make(sizeof(person), 0, 0);
 
-    s = vec_appendn(s, 3, &alice, &alice2, &bob);
+    s = vec_appendnp(s, 3, &alice, &alice2, &bob);
 
     for (int i = 0; i < 3; ++i) {
         print_person(&s[i]);
@@ -153,31 +153,18 @@ struct print_ctx {
     int len;
 };
 
-static void print_map_int(void* c, const char* key, void* value) {
-    struct print_ctx* ctx = c;
-    const int* v = value;
-    if (ctx->n == 0) {
-        printf("{\n");
-    }
-    ++ctx->n;
-    printf("  \"%s\": %d", key, *v);
-    if (ctx->n == ctx->len) {
-        printf("\n}\n");
-    } else {
-        printf(",\n");
-    }
-}
+static void print_map_int(void* c, const char* key, void* value) { struct print_ctx* ctx = c; }
 
 void test_map_int() {
     map_t m = map_make(sizeof(int), 20);
     assert(0 == map_len(m));
 
     int i = 0;
-    m = map_add(m, "zero", &i);
+    m = map_addp(m, "zero", &i);
     i = 10;
-    m = map_add(m, "ten", &i);
+    m = map_addp(m, "ten", &i);
     i = 3;
-    m = map_add(m, "three", &i);
+    m = map_addp(m, "three", &i);
 
     m = map_addv(m, "three", 33);
     m = map_addv(m, "forty two", 42);
@@ -205,9 +192,19 @@ void test_map_int() {
     struct print_ctx ctx;
     ctx.len = map_len(m);
     ctx.n = 0;
-    map_each_ctx(m, print_map_int, &ctx);
-
-    map_print_internals(m);
+    for (map_iterator_t it = map_iterator(m); map_next(&it);) {
+        const int* v = it.value;
+        if (ctx.n == 0) {
+            printf("{\n");
+        }
+        ++ctx.n;
+        printf("  \"%s\": %d", it.key, *v);
+        if (ctx.n == ctx.len) {
+            printf("\n}\n");
+        } else {
+            printf(",\n");
+        }
+    }
 
     map_del(m);
 }
@@ -220,8 +217,6 @@ void test_map_big() {
         s[0] = i;
         assert(m = map_addv(m, s, 0));
     }
-
-    map_print_internals(m);
 
     assert(map_get(m, "f", NULL));
 
