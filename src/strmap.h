@@ -2,25 +2,26 @@
 #define __DELTA_MAP_H
 
 #include <stddef.h>
+#include <stdio.h>
 
 typedef void* strmap_t;
 
 /*
  * Returns a new map.
  * It is heap allocated to store at least the given capacity.
+ *
+ * NULL is returned in case of error.
  */
 strmap_t strmap_make(size_t value_size, size_t capacity);
 
 /*
  * Deletes the map.
  * The underlying memoty is freed.
- * If NULL is given, nothing is deleted and no error is returned.
  */
 void strmap_del(strmap_t map);
 
 /*
  * Returns the length of the map (the number of elements the map holds).
- * If NULL is passed, 0 is returned.
  */
 size_t strmap_len(const strmap_t m);
 
@@ -46,37 +47,42 @@ int strmap_erase(strmap_t map, const char* key);
  * Stores the given key and the associated value pointed to by val_ptr in the map.
  *
  * Use this function to map strings to structured values.
- * Store to a NULL map is undefined behavior.
  *
  * The map is reallocated if it has not enough capacity to hold the new value.
  *
  * The input map may be invalidated. Do not attempt to use it after calling this
  * function.
+ *
+ * NULL is returned in case of error.
  */
 strmap_t strmap_addp(strmap_t map, const char* key, const void* val_ptr);
 
 /*
- * Adds the given key and the associated value in the map.
+ * Stores the given key and the associated value in the map.
  * Unlike strmap_addp, the value must be passed by value (m = strmap_addv(m, "one", 1) adds the pair
  * ["one", 1]).
  *
  * Use this function to map strings to literal values like integers or pointers.
- * Add to a NULL map is undefined behavior.
  *
  * The map is reallocated if it has not enough capacity to hold the new value.
  *
  * The input map may be invalidated. Do not attempt to use it after calling this
  * function.
+ *
+ * NULL is returned in case of error.
  */
 strmap_t strmap_addv(strmap_t map, const char* key, ...);
 
 /*
  * An iterator on a map.
  */
-typedef struct strmap_iterator {
+typedef struct _strmap_iterator {
+    /* Current key. */
     const char* key;
+    /* Pointer on the current value. */
     void* value;
 
+    /* Internal state. */
     strmap_t _map;
     void* _b;
     size_t _bpos;
