@@ -11,7 +11,7 @@
 
 typedef struct _map_bucket {
     unsigned long hash[MAPB_CAPA];
-    char* keys[MAPB_CAPA];
+    size_t key_positions[MAPB_CAPA];
     char* values;
     size_t len;
     struct _map_bucket* next;
@@ -25,6 +25,10 @@ typedef struct _map {
 
     size_t nb_buckets;
     _map_bucket* buckets;
+
+    char* keys;
+    size_t keys_len;
+    size_t keys_capacity;
 } _map;
 
 static void* init_new_bucket(const _map* m, _map_bucket* b) {
@@ -64,6 +68,12 @@ map_t map_make(size_t value_size, size_t capacity) {
         return NULL;
     }
 
+    m->keys_capacity = 1024;
+    m->keys_len = 0;
+    if ((m->keys = malloc(m->keys_capacity)) == NULL) {
+        return NULL;
+    }
+
     for (i = 0; i < m->nb_buckets; ++i) {
         _map_bucket* b = &m->buckets[i];
         if (init_new_bucket(m, b) == NULL) {
@@ -74,29 +84,22 @@ map_t map_make(size_t value_size, size_t capacity) {
     return m;
 }
 
-static void map_del_data(_map* m, int del_keys) {
+void map_del(map_t map) {
+    _map* m = map;
     int i = 0;
-    for (i = 0; i < m->nb_buckets; ++i) {
-        _map_bucket* b = &m->buckets[i];
-        while (b != NULL) {
-            if (del_keys) {
-                int j = 0;
-                for (j = 0; j < b->len; ++j) {
-                    free(b->keys[j]); /* TODO: store keys in a big buffer to alloc and free once */
-                }
-            }
-            free(b->values);
-            b = b->next;
-        }
-    }
-    free(m->buckets);
-}
 
-void map_del(map_t m) {
     if (m == NULL) {
         return;
     }
-    map_del_data(m, 1);
+
+    for (i = 0; i < m->nb_buckets; ++i) {
+        _map_bucket* b = &m->buckets[i];
+        free(b->values);
+        b = b->next;
+    }
+
+    free(m->buckets);
+    free(m->keys);
     free(m);
 }
 
@@ -111,7 +114,7 @@ size_t map_len(const map_t map) {
 /*
  * https://stackoverflow.com/questions/7666509/hash-function-for-string
  *
- * TODO: better hash function.
+ * TODO: faster hash function.
  */
 static unsigned long hash(const _map* m, const char* s) {
     unsigned long h = m->hash_seed;
@@ -143,7 +146,8 @@ static int find_bucket_pos(const _map* m, const char* key, unsigned long* out_ke
     while (1) {
         for (i = 0; i < b->len; ++i) {
             if (h == b->hash[i]) {
-                if (strcmp(b->keys[i], key) != 0) {
+                const char* bkey = m->keys + b->key_positions[i];
+                if (strcmp(bkey, key) != 0) {
                     continue;
                 }
                 break;
@@ -191,7 +195,7 @@ int map_erase(map_t map, const char* key) {
     }
     if (b->len > 1) {
         b->hash[pos] = b->hash[b->len - 1];
-        b->keys[pos] = b->keys[b->len - 1];
+        b->key_positions[pos] = b->key_positions[b->len - 1];
         memcpy(bucket_val(m, b, pos), bucket_val(m, b, b->len - 1), m->value_size);
     }
     --b->len;
@@ -200,7 +204,25 @@ int map_erase(map_t map, const char* key) {
     return 1;
 }
 
-static void* map_insert(_map* m, const char* key, const void* val_ptr, int copy_key) {
+int insert_new_key(_map* m, _map_bucket* b, size_t pos, const char* key) {
+    const size_t key_len = strlen(key) + 1;
+    int key_pos = 0;
+
+    while (m->keys_len + key_len > m->keys_capacity) {
+        m->keys_capacity *= 2;
+        if ((m->keys = realloc(m->keys, m->keys_capacity)) == NULL) {
+            return -1;
+        }
+    }
+
+    key_pos = m->keys_len;
+    memcpy(m->keys + key_pos, key, key_len);
+    m->keys_len += key_len;
+
+    return key_pos;
+}
+
+static void* map_insert(_map* m, const char* key, const void* val_ptr) {
     _map_bucket* b = NULL;
     int pos = 0;
     unsigned long h = 0;
@@ -222,7 +244,11 @@ static void* map_insert(_map* m, const char* key, const void* val_ptr, int copy_
     }
     memcpy(bucket_val(m, b, pos), val_ptr, m->value_size);
     b->hash[pos] = h;
-    b->keys[pos] = (copy_key ? strdup(key) : (char*)key);
+    b->key_positions[pos] = insert_new_key(m, b, pos, key);
+    if (b->key_positions[pos] == -1) {
+        return NULL;
+    }
+
     ++b->len;
     ++m->len;
     return m;
@@ -236,13 +262,13 @@ static _map* map_rehash(_map* m) {
     }
 
     while (map_next(&it)) {
-        if (map_insert(n, it.key, it.value, 0 /* Move keys. */) == NULL) {
+        if (map_insert(n, it.key, it.value) == NULL) {
             return NULL;
         }
     }
 
-    map_del_data(m, 0 /* Do not delete keys that were moved to the new map. */);
-    free(m);
+    map_del(m);
+
     return n;
 }
 
@@ -257,7 +283,7 @@ map_t map_addp(map_t map, const char* key, const void* val_ptr) {
         }
     }
 
-    return map_insert(m, key, val_ptr, 1 /* Copy key. */);
+    return map_insert(m, key, val_ptr);
 }
 
 map_t map_addv(map_t map, const char* key, ...) {
@@ -319,7 +345,7 @@ int map_next(map_iterator_t* it) {
         _map_bucket* b = it->_b;
         for (; b != NULL; it->_b = b = b->next, it->_kpos = 0) {
             if (it->_kpos < b->len) {
-                it->key = b->keys[it->_kpos];
+                it->key = m->keys + b->key_positions[it->_kpos];
                 it->value = bucket_val(m, b, it->_kpos);
                 ++it->_kpos;
                 return 1;
