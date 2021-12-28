@@ -192,6 +192,12 @@ void strmap_del(strmap_t map) {
         _strmap_bucket* b = &m->buckets[i];
         free(b->values);
         b = b->next;
+        while (b != NULL) {
+            _strmap_bucket* cur = b;
+            free(cur->values);
+            b = cur->next;
+            free(cur);
+        }
     }
 
     free(m->buckets);

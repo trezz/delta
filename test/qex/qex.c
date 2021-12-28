@@ -343,5 +343,7 @@ int main(int argc, char** argv) {
     strmap_del(buffers);
     qex_del(&qex);
 
+    vec_del(args.files);
+
     return 0;
 }
