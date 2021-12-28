@@ -51,7 +51,6 @@ void vec_del(void* vec);
 
 /*
  * Returns the length of the vec (the number of elements the vec holds).
- * If NULL is passed, 0 is returned.
  */
 size_t vec_len(const void* vec);
 
@@ -66,8 +65,6 @@ size_t vec_len(const void* vec);
  *
  * The input vec may be invalidated. Do not attempt to use it after calling this
  * function.
- *
- * Appending to a NULL vec is undefined behavior.
  */
 void* vec_appendnv(void* vec, size_t n, ...);
 
@@ -83,8 +80,6 @@ void* vec_appendnv(void* vec, size_t n, ...);
  *
  * The input vec may be invalidated. Do not attempt to use it after calling this
  * function.
- *
- * Storing to a NULL vec is undefined behavior.
  */
 void* vec_appendnp(void* vec, size_t n, ...);
 
@@ -107,10 +102,6 @@ void* vec_back(void* vec);
 
 /*
  * Returns a sub vec from the vec with the values in the range [start; end[
- * NULL is returned if:
- *  - The input vec is NULL
- *  - start is greater than the size of the vec.
- *  - end is lower than start
  *
  * If a negative number is passed as end, the range end position is computed starting
  * from the end of the vec. -1 is equivalent to vec_len(vec), -2 is equivalent

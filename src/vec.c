@@ -62,9 +62,6 @@ void vec_del(void *vec) {
 
 size_t vec_len(const void *vec) {
     const vec_header *header = NULL;
-    if (vec == NULL) {
-        return 0;
-    }
     header = get_vec_header_const(vec);
     return header->len;
 }
@@ -163,11 +160,7 @@ void *vec_appendnp(void *vec, size_t n, ...) {
 }
 
 void vec_pop(void *vec) {
-    vec_header *header = NULL;
-    if (vec == NULL) {
-        return;
-    }
-    header = get_vec_header(vec);
+    vec_header *header = get_vec_header(vec);
     if (header->len == 0) {
         return;
     }
@@ -175,21 +168,13 @@ void vec_pop(void *vec) {
 }
 
 void vec_clear(void *vec) {
-    vec_header *header = NULL;
-    if (vec == NULL) {
-        return;
-    }
-    header = get_vec_header(vec);
+    vec_header *header = get_vec_header(vec);
     header->len = 0;
 }
 
 void *vec_back(void *vec) {
-    vec_header *header = NULL;
+    vec_header *header = get_vec_header(vec);
     char *data = vec;
-    if (vec == NULL) {
-        return NULL;
-    }
-    header = get_vec_header(vec);
     return data + ((header->len - 1) * header->value_size);
 }
 
@@ -197,22 +182,10 @@ void *vec_sub(const void *vec, size_t start, int end) {
     /* Signed integers to compute the new sub-vector length. */
     int computed_len = 0;
     size_t sublen = 0;
-
-    const vec_header *header = NULL;
+    const vec_header *header = get_vec_header_const(vec);
     const char *begin = NULL;
     void *new = NULL;
     vec_header *new_header = NULL;
-
-    if (vec == NULL) {
-        return NULL;
-    }
-    header = get_vec_header_const(vec);
-    if (start >= header->len) {
-        return NULL;
-    }
-    if ((end >= 0) && (end <= (int)(start))) {
-        return NULL;
-    }
 
     begin = (const void *)(header + 1);
     begin += start * header->value_size;
@@ -239,16 +212,11 @@ void vec_sort(void *vec, int (*less)(void *, size_t, size_t)) {
     size_t i = 0;
     size_t j = 0;
     const size_t len = vec_len(vec);
-    vec_header *header = NULL;
+    vec_header *header = get_vec_header(vec);
     char *swapbuf = NULL;
     void *i_data = NULL;
     void *j_data = NULL;
     char *data = vec;
-
-    if (vec == NULL) {
-        return;
-    }
-    header = get_vec_header(vec);
 
     swapbuf = header->malloc_func(header->value_size);
 
