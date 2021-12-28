@@ -310,7 +310,10 @@ int main(int argc, char** argv) {
         fseek(f, 0, SEEK_SET);
         char* buf = malloc(sizeof(char) * length + 1);
         buffers = strmap_addv(buffers, file, buf);
-        fread(buf, length, 1, f);
+        if (fread(buf, length, 1, f) != 1) {
+            printf("failed to read file\n");
+            exit(1);
+        }
         buf[length] = 0;
         fclose(f);
 
