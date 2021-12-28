@@ -191,6 +191,11 @@ static void qex_init(qex_t* q, char* range) {
 
 static void qex_del(qex_t* q) {
     strmap_del(q->_queries_in_range);
+
+    for (strmap_iterator_t it = strmap_iterator(q->_popular_queries); strmap_next(&it);) {
+        char*** queries_ptr = it.value;
+        vec_del(*queries_ptr);
+    }
     strmap_del(q->_popular_queries);
 }
 
@@ -277,11 +282,13 @@ static void print_nth_most_popular_queries(qex_t* q, size_t num) {
         for (int j = 0; j < vec_len(queries); ++j) {
             char* query = queries[j];
             if (num-- == 0) {
-                return;
+                goto end;
             }
             printf("%s %s\n", query, num_queries);
         }
     }
+end:
+    vec_del(ns);
 }
 
 /************************* Entry point ***************************************/
