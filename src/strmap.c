@@ -1,4 +1,4 @@
-#include "strmap.h"
+#include "delta/strmap.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -314,7 +314,7 @@ static int insert_new_key(_map* m, _strmap_bucket* b, size_t pos, const char* ke
  */
 static void* strmap_insert(_map* m, const char* key, const void* val_ptr) {
     _strmap_bucket* b = NULL;
-    int pos = 0;
+    size_t pos = 0;
     unsigned long h = 0;
     const size_t key_len = strlen(key);
 

@@ -2,7 +2,6 @@
 #define __DELTA_MAP_H
 
 #include <stddef.h>
-#include <stdio.h>
 
 typedef void* strmap_t;
 

@@ -1,2 +1,5 @@
-.o
-.lib
+*.o
+*.lib
+*.dSYM
+*.out
+build/

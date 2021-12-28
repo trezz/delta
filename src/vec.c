@@ -1,4 +1,4 @@
-#include "./vec.h"
+#include "delta/vec.h"
 
 #include <assert.h>
 #include <stdarg.h>
