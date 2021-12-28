@@ -121,6 +121,6 @@ void* vec_sub(const void* vec, size_t start, int end);
 /*
  * Sorts the vec using the provided less function.
  */
-void vec_sort(void* vec, int (*less_func)(void* /* vec */, size_t /* a */, size_t /* b */));
+void vec_sort(void* vec, int (*less)(void* /* vec */, size_t /* a */, size_t /* b */));
 
 #endif /* DELTA_VEC_H_ */

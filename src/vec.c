@@ -235,7 +235,7 @@ void *vec_sub(const void *vec, size_t start, int end) {
 }
 
 /* TODO: implement a quicksort and a stable sort. */
-static void vec_sort_any(void *vec, int (*less)(void *, size_t, size_t)) {
+void vec_sort(void *vec, int (*less)(void *, size_t, size_t)) {
     size_t i = 0;
     size_t j = 0;
     const size_t len = vec_len(vec);
@@ -268,5 +268,3 @@ static void vec_sort_any(void *vec, int (*less)(void *, size_t, size_t)) {
 
     free(swapbuf);
 }
-
-void vec_sort(void *vec, int (*less_func)(void *, size_t, size_t)) { vec_sort_any(vec, less_func); }
