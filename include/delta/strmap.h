@@ -79,7 +79,7 @@ typedef struct _strmap_iterator {
     /* Current key. */
     const char* key;
     /* Pointer on the current value. */
-    void* value;
+    void* val_ptr;
 
     /* Internal state. */
     strmap_t _map;

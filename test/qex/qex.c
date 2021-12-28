@@ -193,7 +193,7 @@ static void qex_del(qex_t* q) {
     strmap_del(q->_queries_in_range);
 
     for (strmap_iterator_t it = strmap_iterator(q->_popular_queries); strmap_next(&it);) {
-        char*** queries_ptr = it.value;
+        char*** queries_ptr = it.val_ptr;
         vec_del(*queries_ptr);
     }
     strmap_del(q->_popular_queries);
@@ -250,7 +250,7 @@ static char* index_tsv_line(qex_t* q, char* line, size_t lineno) {
 
 static void build_most_popular_queries_set(qex_t* q) {
     for (strmap_iterator_t it = strmap_iterator(q->_queries_in_range); strmap_next(&it);) {
-        size_t n = *(int*)it.value;
+        size_t n = *(int*)it.val_ptr;
         char buf[100];
 
         sprintf(buf, "%zu", n);
@@ -344,7 +344,7 @@ int main(int argc, char** argv) {
     }
 
     for (strmap_iterator_t it = strmap_iterator(buffers); strmap_next(&it);) {
-        char** buffer = it.value;
+        char** buffer = it.val_ptr;
         free(*buffer);
     }
     strmap_del(buffers);

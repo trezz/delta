@@ -363,7 +363,7 @@ static _map* strmap_rehash(_map* m) {
     }
 
     while (strmap_next(&it)) {
-        if (strmap_insert(n, it.key, it.value) == NULL) {
+        if (strmap_insert(n, it.key, it.val_ptr) == NULL) {
             return NULL;
         }
     }
@@ -427,7 +427,7 @@ strmap_iterator_t strmap_iterator(const strmap_t map) {
     strmap_iterator_t it;
 
     it.key = NULL;
-    it.value = NULL;
+    it.val_ptr = NULL;
     it._map = map;
     it._bpos = 0;
     it._kpos = 0;
@@ -447,7 +447,7 @@ int strmap_next(strmap_iterator_t* it) {
         for (; b != NULL; it->_b = b = b->next, it->_kpos = 0) {
             if (it->_kpos < b->len) {
                 it->key = m->keys + b->key_positions[it->_kpos];
-                it->value = bucket_val(m, b, it->_kpos);
+                it->val_ptr = bucket_val(m, b, it->_kpos);
                 ++it->_kpos;
                 return 1;
             };
