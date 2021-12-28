@@ -15,6 +15,9 @@ typedef struct _vec_header {
 #define get_vec_header(vec) (((vec_header *)vec) - 1)
 
 void *vec_make(size_t elem_size, size_t len, size_t capacity) {
+    if (capacity == 0) {
+        capacity++;
+    }
     vec_header *s = malloc(capacity * elem_size + sizeof(vec_header));
     char *data = (void *)(s + 1);
     s->len = len;
