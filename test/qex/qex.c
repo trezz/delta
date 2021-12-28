@@ -168,19 +168,14 @@ static void parse_range(range_t* r, const char* range) {
     r->second = date[5];
 }
 
-typedef strmap_t QueryMap;
-/**< queries map with their number of occurrence as values */
-typedef strmap_t PopularQueriesMap;
-/**< most popular queries map, ordered by number of occurence */
-
 typedef struct qex {
     range_t _user_range;
     /**< User-defined range given as constructor's input argument */
     range_t _range;
     /**< Current range object being updated at each line parsing */
-    QueryMap _queries_in_range;
+    strmap_t _queries_in_range;
     /**< Queries in requested range */
-    PopularQueriesMap _popular_queries;
+    strmap_t _popular_queries;
 } qex_t;
 
 static void qex_init(qex_t* q, char* range) {
