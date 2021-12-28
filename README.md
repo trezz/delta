@@ -9,14 +9,14 @@ The delta library provides the following containers, implemented in C89:
 ### Install
 
 Clone the repository:
-```
+```sh
 git clone git@github.com:trezz/delta.git
 mkdir delta/build
 cd delta/build
 ```
 
 Install the library under `~/.local`:
-```
+```sh
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=~/.local
 make install
 ```
@@ -27,9 +27,11 @@ The program [countchars.c](test/countchars.c) takes any number of arguments and 
 
 To compile and run it:
 
-```
+```sh
 clang ./test/countchars.c -I ~/.local/include -L ~/.local/lib -ldelta -o countchars
 ./countchars hello world!
+```
+```
 char 'l' counted 3 time(s)
 char 'o' counted 2 time(s)
 char '!' counted 1 time(s)
