@@ -110,8 +110,26 @@ void* vec_back(void* vec);
 void* vec_sub(const void* vec, size_t start, int end);
 
 /*
+ * Less function pointer taking a vector and two indices.
+ * The function must return whether vec[a] <= vec[b].
+ */
+typedef int (*less_f)(void* /* vec */, size_t /* a */, size_t /* b */);
+
+/*
+ * Less function pointer taking a vector, two indices and a user-defined context.
+ * The function must return whether vec[a] <= vec[b].
+ */
+typedef int (*less_with_ctx_f)(void* /* vec */, size_t /* a */, size_t /* b */, void* /* ctx */);
+
+/*
  * Sorts the vec using the provided less function.
  */
-void vec_sort(void* vec, int (*less)(void* /* vec */, size_t /* a */, size_t /* b */));
+void vec_sort(void* vec, less_f less);
+
+/*
+ * Sorts the vec using the provided less function.
+ * The less function takes a pointer on a context data.
+ */
+void vec_sort_ctx(void* vec, less_with_ctx_f less, void* ctx);
 
 #endif /* DELTA_VEC_H_ */

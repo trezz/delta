@@ -451,6 +451,7 @@ strmap_iterator_t strmap_iterator(const strmap_t map) {
     it._map = map;
     it._bpos = 0;
     it._kpos = 0;
+    it._b = NULL;
 
     if (m->len == 0) {
         return it;

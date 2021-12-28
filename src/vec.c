@@ -207,8 +207,15 @@ void *vec_sub(const void *vec, size_t start, int end) {
     return new;
 }
 
+static int less_no_context(void *vec, size_t a, size_t b, void *ctx) {
+    less_f less = (less_f)ctx;
+    return less(vec, a, b);
+}
+
+void vec_sort(void *vec, less_f less) { vec_sort_ctx(vec, less_no_context, (void *)less); }
+
 /* TODO: implement a quicksort and a stable sort. */
-void vec_sort(void *vec, int (*less)(void *, size_t, size_t)) {
+void vec_sort_ctx(void *vec, less_with_ctx_f less, void *ctx) {
     size_t i = 0;
     size_t j = 0;
     const size_t len = vec_len(vec);
@@ -220,11 +227,11 @@ void vec_sort(void *vec, int (*less)(void *, size_t, size_t)) {
 
     swapbuf = header->malloc_func(header->value_size);
 
-    assert(1000 > header->elem_size);
+    assert(1000 > header->value_size);
 
     for (i = 0; i < len; ++i) {
         for (j = i + 1; j < len; ++j) {
-            if (less(vec, j, i)) {
+            if (less(vec, j, i, ctx)) {
                 i_data = data + i * header->value_size;
                 j_data = data + j * header->value_size;
                 memcpy(swapbuf, i_data, header->value_size);
