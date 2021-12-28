@@ -4,12 +4,6 @@ The delta library provides the following containers, implemented in C89:
 * A "generic" string hashmap mapping C strings (`const char*`) keys to values of any type.
 * A "generic" vector.
 
-## Containers
-
-### `strmap`
-
-### `vec`
-
 ## Howto
 
 ### Install
