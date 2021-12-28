@@ -1,5 +1,5 @@
-#ifndef __DELTA_MAP_H
-#define __DELTA_MAP_H
+#ifndef DELTA_STRMAP_H_
+#define DELTA_STRMAP_H_
 
 #include <stddef.h>
 
@@ -103,4 +103,4 @@ strmap_iterator_t strmap_iterator(const strmap_t map);
  */
 int strmap_next(strmap_iterator_t* it);
 
-#endif /* __DELTA_MAP_H */
+#endif /* DELTA_STRMAP_H_ */

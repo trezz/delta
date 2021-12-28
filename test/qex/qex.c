@@ -259,7 +259,7 @@ static void build_most_popular_queries_set(qex_t* q) {
     }
 }
 
-static int popular_queries_sorter(void* vec, int a, int b) {
+static int popular_queries_sorter(void* vec, size_t a, size_t b) {
     char** v = vec;
     return atoi(v[a]) > atoi(v[b]);
 }

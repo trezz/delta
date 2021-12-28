@@ -20,7 +20,7 @@ static size_t unaligned_load(const char* p) {
 }
 
 #if __SIZEOF_SIZE_T__ == 8
-// Loads n bytes, where 1 <= n < 8.
+/* Loads n bytes, where 1 <= n < 8. */
 static size_t load_bytes(const char* p, int n) {
     size_t result = 0;
     --n;
@@ -30,18 +30,18 @@ static size_t load_bytes(const char* p, int n) {
     return result;
 }
 
-size_t shift_mix(size_t v) { return v ^ (v >> 47); }
+static size_t shift_mix(size_t v) { return v ^ (v >> 47); }
 #endif
 
 #if __SIZEOF_SIZE_T__ == 4
 
-// Implementation of Murmur hash for 32-bit size_t.
+/* Implementation of Murmur hash for 32-bit size_t. */
 static size_t hash_bytes(const void* ptr, size_t len, size_t seed) {
     const size_t m = 0x5bd1e995;
     size_t hash = seed ^ len;
     const char* buf = (const char*)(ptr);
 
-    // Mix 4 bytes at a time into the hash.
+    /* Mix 4 bytes at a time into the hash. */
     while (len >= 4) {
         size_t k = unaligned_load(buf);
         k *= m;
@@ -53,7 +53,7 @@ static size_t hash_bytes(const void* ptr, size_t len, size_t seed) {
         len -= 4;
     }
 
-    // Handle the last few bytes of the input array.
+    /* Handle the last few bytes of the input array. */
     switch (len) {
         case 3:
             hash ^= (unsigned char)(buf[2]) << 16;
@@ -66,7 +66,7 @@ static size_t hash_bytes(const void* ptr, size_t len, size_t seed) {
             hash *= m;
     };
 
-    // Do a few final mixes of the hash.
+    /* Do a few final mixes of the hash. */
     hash ^= hash >> 13;
     hash *= m;
     hash ^= hash >> 15;
@@ -75,17 +75,20 @@ static size_t hash_bytes(const void* ptr, size_t len, size_t seed) {
 
 #elif __SIZEOF_SIZE_T__ == 8
 
-// Implementation of Murmur hash for 64-bit size_t.
+/* Implementation of Murmur hash for 64-bit size_t. */
 static size_t hash_bytes(const void* ptr, size_t len, size_t seed) {
     static const size_t mul = (((size_t)0xc6a4a793UL) << 32UL) + (size_t)0x5bd1e995UL;
     const char* const buf = (const char*)(ptr);
+    const char* p = NULL;
 
-    // Remove the bytes not divisible by the sizeof(size_t).  This
-    // allows the main loop to process the data as 64-bit integers.
+    /*
+     * Remove the bytes not divisible by the sizeof(size_t).  This
+     * allows the main loop to process the data as 64-bit integers.
+     */
     const size_t len_aligned = len & ~(size_t)0x7;
     const char* const end = buf + len_aligned;
     size_t hash = seed ^ (len * mul);
-    for (const char* p = buf; p != end; p += 8) {
+    for (p = buf; p != end; p += 8) {
         const size_t data = shift_mix(unaligned_load(p) * mul) * mul;
         hash ^= data;
         hash *= mul;
@@ -102,7 +105,7 @@ static size_t hash_bytes(const void* ptr, size_t len, size_t seed) {
 
 #else
 
-// Dummy hash implementation for unusual sizeof(size_t).
+/* Dummy hash implementation for unusual sizeof(size_t). */
 static size_t hash_bytes(const void* ptr, size_t len, size_t seed) {
     size_t hash = seed;
     const char* cptr = (const char*)(ptr);
@@ -232,7 +235,7 @@ static int find_bucket_pos(const _map* m, const char* key, size_t key_len,
         for (i = 0; i < b->len; ++i) {
             if (h == b->hash[i]) {
                 const char* bkey = m->keys + b->key_positions[i];
-                if (strcmp(bkey, key) != 0) {
+                if (strncmp(key, bkey, key_len) != 0) {
                     continue;
                 }
                 break;
@@ -292,18 +295,18 @@ int strmap_erase(strmap_t map, const char* key) {
 }
 
 /*
- * Insert the given key in the given map's bucket at the given position in the bucket.
+ * Appends the given key in the keys buffer of the map.
  * The inserted key position is returned on success.
- * -1 is returned in case of error.
+ * SIZE_MAX is returned in case of error.
  */
-static int insert_new_key(_map* m, _strmap_bucket* b, size_t pos, const char* key) {
+static size_t append_new_key(_map* m, const char* key) {
     const size_t key_len = strlen(key) + 1;
-    int key_pos = 0;
+    size_t key_pos = 0;
 
     while (m->keys_len + key_len > m->keys_capacity) {
         m->keys_capacity *= 2;
         if ((m->keys = realloc(m->keys, m->keys_capacity)) == NULL) {
-            return -1;
+            return SIZE_MAX;
         }
     }
 
@@ -341,7 +344,7 @@ static void* strmap_insert(_map* m, const char* key, const void* val_ptr) {
     }
     memcpy(bucket_val(m, b, pos), val_ptr, m->value_size);
     b->hash[pos] = h;
-    if ((b->key_positions[pos] = insert_new_key(m, b, pos, key)) == -1) {
+    if ((b->key_positions[pos] = append_new_key(m, key)) == SIZE_MAX) {
         return NULL;
     }
 
@@ -375,9 +378,9 @@ static _map* strmap_rehash(_map* m) {
 
 strmap_t strmap_addp(strmap_t map, const char* key, const void* val_ptr) {
     _map* m = map;
-    float load_factor = m->len;
+    double load_factor = (double)(m->len);
 
-    load_factor /= (float)m->nb_buckets;
+    load_factor /= (double)m->nb_buckets;
     if (load_factor > MAP_MAX_LOAD_FACTOR) {
         if ((m = strmap_rehash(m)) == NULL) {
             return NULL;
@@ -389,33 +392,28 @@ strmap_t strmap_addp(strmap_t map, const char* key, const void* val_ptr) {
 
 strmap_t strmap_addv(strmap_t map, const char* key, ...) {
     _map* m = map;
-    char c = 0;
-    short sh = 0;
-    int i = 0;
-    long long ll = 0;
+    int8_t i8 = 0;
+    int16_t i16 = 0;
+    int32_t i32 = 0;
+    int64_t i64 = 0;
     va_list args;
 
-    assert(sizeof(c) == 1 && "unsupported runtime environment");
-    assert(sizeof(sh) == 2 && "unsupported runtime environment");
-    assert(sizeof(i) == 4 && "unsupported runtime environment");
-    assert(sizeof(ll) == 8 && "unsupported runtime environment");
-
     va_start(args, key);
-    ll = va_arg(args, long long);
+    i64 = va_arg(args, int64_t);
     va_end(args);
 
     switch (m->value_size) {
-        case 1:
-            c = (char)ll;
-            return strmap_addp(m, key, &c);
-        case 2:
-            sh = (short)ll;
-            return strmap_addp(m, key, &sh);
-        case 4:
-            i = (int)ll;
-            return strmap_addp(m, key, &i);
-        case 8:
-            return strmap_addp(m, key, &ll);
+        case sizeof(int8_t):
+            i8 = (int8_t)i64;
+            return strmap_addp(m, key, &i8);
+        case sizeof(int16_t):
+            i16 = (int16_t)i64;
+            return strmap_addp(m, key, &i16);
+        case sizeof(int32_t):
+            i32 = (int32_t)i64;
+            return strmap_addp(m, key, &i32);
+        case sizeof(int64_t):
+            return strmap_addp(m, key, &i64);
         default:
             assert(0 && "unsupported value data size");
     }
@@ -450,7 +448,7 @@ int strmap_next(strmap_iterator_t* it) {
                 it->val_ptr = bucket_val(m, b, it->_kpos);
                 ++it->_kpos;
                 return 1;
-            };
+            }
         }
         it->_kpos = 0;
         if (++it->_bpos == m->nb_buckets) {

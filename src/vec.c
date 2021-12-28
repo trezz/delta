@@ -13,13 +13,17 @@ typedef struct _vec_header {
 } vec_header;
 
 #define get_vec_header(vec) (((vec_header *)vec) - 1)
+#define get_vec_header_const(vec) (((const vec_header *)vec) - 1)
 
 void *vec_make(size_t elem_size, size_t len, size_t capacity) {
+    vec_header *s = NULL;
+    char *data = NULL;
+
     if (capacity == 0) {
-        capacity++;
+        ++capacity;
     }
-    vec_header *s = malloc(capacity * elem_size + sizeof(vec_header));
-    char *data = (void *)(s + 1);
+    s = malloc(capacity * elem_size + sizeof(vec_header));
+    data = (void *)(s + 1);
     s->len = len;
     s->capacity = capacity;
     s->elem_size = elem_size;
@@ -37,11 +41,11 @@ void vec_del(void *vec) {
 }
 
 size_t vec_len(const void *vec) {
-    vec_header *header = NULL;
+    const vec_header *header = NULL;
     if (vec == NULL) {
         return 0;
     }
-    header = get_vec_header(vec);
+    header = get_vec_header_const(vec);
     return header->len;
 }
 
@@ -67,17 +71,12 @@ static vec_header *vec_grow_to_fit(void *vec, size_t n) {
 void *vec_appendnv(void *vec, size_t n, ...) {
     vec_header *header = NULL;
     char *data = NULL;
-    char c = 0;
-    short sh = 0;
-    int i = 0;
-    long long ll = 0;
-    int narg = 0;
+    int8_t i8 = 0;
+    int16_t i16 = 0;
+    int32_t i32 = 0;
+    int64_t i64 = 0;
+    size_t narg = 0;
     va_list args;
-
-    assert(sizeof(c) == 1 && "unsupported runtime environment");
-    assert(sizeof(sh) == 2 && "unsupported runtime environment");
-    assert(sizeof(i) == 4 && "unsupported runtime environment");
-    assert(sizeof(ll) == 8 && "unsupported runtime environment");
 
     va_start(args, n);
 
@@ -87,22 +86,22 @@ void *vec_appendnv(void *vec, size_t n, ...) {
     data += header->len * header->elem_size;
 
     for (narg = 0; narg < n; ++narg) {
-        ll = va_arg(args, long long);
+        i64 = va_arg(args, int64_t);
         switch (header->elem_size) {
-            case 1:
-                c = (char)ll;
-                memcpy(data, &c, 1);
+            case sizeof(int8_t):
+                i8 = (int8_t)i64;
+                memcpy(data, &i8, sizeof(int8_t));
                 break;
-            case 2:
-                sh = (short)ll;
-                memcpy(data, &sh, 2);
+            case sizeof(int16_t):
+                i16 = (int16_t)i64;
+                memcpy(data, &i16, sizeof(int16_t));
                 break;
-            case 4:
-                i = (int)ll;
-                memcpy(data, &i, 4);
+            case sizeof(int32_t):
+                i32 = (int32_t)i64;
+                memcpy(data, &i32, sizeof(int32_t));
                 break;
-            case 8:
-                memcpy(data, &ll, 8);
+            case sizeof(int64_t):
+                memcpy(data, &i64, sizeof(int64_t));
                 break;
             default:
                 assert(0 && "unsupported value data size");
@@ -119,7 +118,7 @@ void *vec_appendnv(void *vec, size_t n, ...) {
 void *vec_appendnp(void *vec, size_t n, ...) {
     vec_header *header = NULL;
     char *data = NULL;
-    int narg = 0;
+    size_t narg = 0;
     void *arg = NULL;
     va_list args;
 
@@ -174,48 +173,51 @@ void *vec_back(void *vec) {
 }
 
 void *vec_sub(const void *vec, size_t start, int end) {
-    vec_header *header = NULL;
+    /* Signed integers to compute the new sub-vector length. */
+    int computed_len = 0;
+    size_t sublen = 0;
+
+    const vec_header *header = NULL;
     const char *begin = NULL;
     void *new = NULL;
     vec_header *new_header = NULL;
-    int len = 0;
 
     if (vec == NULL) {
         return NULL;
     }
-    header = get_vec_header(vec);
+    header = get_vec_header_const(vec);
     if (start >= header->len) {
         return NULL;
     }
-    if ((end >= 0) && (end <= start)) {
+    if ((end >= 0) && (end <= (int)(start))) {
         return NULL;
     }
 
-    begin = (void *)(header + 1);
+    begin = (const void *)(header + 1);
     begin += start * header->elem_size;
     if (end < 0) {
-        len = header->len - start + end + 1;
+        computed_len = (int)(header->len) - (int)(start) + end + 1;
     } else {
-        len = end - start;
+        computed_len = end - (int)(start);
     }
-
-    if (len <= 0) {
+    if (computed_len <= 0) {
         return NULL;
     }
+    sublen = (size_t)(computed_len);
 
-    new = vec_make(header->elem_size, 0, len);
+    new = vec_make(header->elem_size, 0, sublen);
     new_header = get_vec_header(new);
-    memcpy(new, begin, len * new_header->elem_size);
-    new_header->len = len;
+    memcpy(new, begin, sublen * new_header->elem_size);
+    new_header->len = sublen;
 
     return new;
 }
 
 /* TODO: implement a quicksort and a stable sort. */
-static void vec_sort_any(void *vec, int (*less)(void *, int, int)) {
-    int i = 0;
-    int j = 0;
-    const int len = vec_len(vec);
+static void vec_sort_any(void *vec, int (*less)(void *, size_t, size_t)) {
+    size_t i = 0;
+    size_t j = 0;
+    const size_t len = vec_len(vec);
     vec_header *header = NULL;
     char swapbuf[1000]; /* TODO: need dynamic allocation if the size to swap is bigger. */
     void *i_data = NULL;
@@ -242,32 +244,4 @@ static void vec_sort_any(void *vec, int (*less)(void *, int, int)) {
     }
 }
 
-#define vec_sort_less(f) ((int (*)(void *, int, int))f)
-
-void vec_sort(void *vec, int (*less_func)(void *, int, int)) {
-    vec_sort_any(vec, vec_sort_less(less_func));
-}
-
-static int chars_less(char *s, int a, int b) { return s[a] < s[b]; }
-static int uchars_less(unsigned char *s, int a, int b) { return s[a] < s[b]; }
-static int shorts_less(short *s, int a, int b) { return s[a] < s[b]; }
-static int ushorts_less(unsigned short *s, int a, int b) { return s[a] < s[b]; }
-static int ints_less(int *s, int a, int b) { return s[a] < s[b]; }
-static int uints_less(unsigned int *s, int a, int b) { return s[a] < s[b]; }
-static int lls_less(long long *s, int a, int b) { return s[a] < s[b]; }
-static int ulls_less(unsigned long long *s, int a, int b) { return s[a] < s[b]; }
-static int floats_less(float *s, int a, int b) { return s[a] < s[b]; }
-static int doubles_less(double *s, int a, int b) { return s[a] < s[b]; }
-static int cstrings_less(char **s, int a, int b) { return strcmp(s[a], s[b]) < 0; }
-
-void vec_sort_chars(char *vec) { vec_sort_any(vec, vec_sort_less(chars_less)); }
-void vec_sort_uchars(unsigned char *vec) { vec_sort_any(vec, vec_sort_less(uchars_less)); }
-void vec_sort_shorts(short *vec) { vec_sort_any(vec, vec_sort_less(shorts_less)); }
-void vec_sort_ushorts(unsigned short *vec) { vec_sort_any(vec, vec_sort_less(ushorts_less)); }
-void vec_sort_ints(int *vec) { vec_sort_any(vec, vec_sort_less(ints_less)); }
-void vec_sort_uints(unsigned int *vec) { vec_sort_any(vec, vec_sort_less(uints_less)); }
-void vec_sort_lls(long long *vec) { vec_sort_any(vec, vec_sort_less(lls_less)); }
-void vec_sort_ulls(unsigned long long *vec) { vec_sort_any(vec, vec_sort_less(ulls_less)); }
-void vec_sort_floats(float *vec) { vec_sort_any(vec, vec_sort_less(floats_less)); }
-void vec_sort_doubles(double *vec) { vec_sort_any(vec, vec_sort_less(doubles_less)); }
-void vec_sort_cstrings(char **vec) { vec_sort_any(vec, vec_sort_less(cstrings_less)); }
+void vec_sort(void *vec, int (*less_func)(void *, size_t, size_t)) { vec_sort_any(vec, less_func); }

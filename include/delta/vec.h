@@ -1,5 +1,5 @@
-#ifndef __DELTA_vec_H
-#define __DELTA_vec_H
+#ifndef DELTA_VEC_H_
+#define DELTA_VEC_H_
 
 #include <stddef.h>
 
@@ -91,21 +91,6 @@ void* vec_sub(const void* vec, size_t start, int end);
 /*
  * Sorts the vec using the provided less function.
  */
-void vec_sort(void* vec, int (*less_func)(void* /* vec */, int /* a */, int /* b */));
+void vec_sort(void* vec, int (*less_func)(void* /* vec */, size_t /* a */, size_t /* b */));
 
-/*
- * The following functions sorts a vec of the given data type in increasing order.
- */
-void vec_sort_chars(char* vec);
-void vec_sort_uchars(unsigned char* vec);
-void vec_sort_shorts(short* vec);
-void vec_sort_ushorts(unsigned short* vec);
-void vec_sort_ints(int* vec);
-void vec_sort_uints(unsigned int* vec);
-void vec_sort_lls(long long* vec);
-void vec_sort_ulls(unsigned long long* vec);
-void vec_sort_floats(float* vec);
-void vec_sort_doubles(double* vec);
-void vec_sort_cstrings(char** vec);
-
-#endif /* __DELTA_vec_H */
+#endif /* DELTA_VEC_H_ */
