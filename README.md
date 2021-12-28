@@ -15,8 +15,9 @@ mkdir delta/build
 cd delta/build
 ```
 
-Install the library under `~/.local`:
+To install the library under `~/.local`:
 ```sh
+mkdir -p ~/.local
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=~/.local
 make install
 ```
