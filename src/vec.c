@@ -7,28 +7,48 @@
 #include <string.h>
 
 typedef struct _vec_header {
+    size_t value_size;
     size_t len;
     size_t capacity;
-    size_t elem_size;
+    void *(*malloc_func)(size_t);
+    void *(*realloc_func)(void *, size_t);
 } vec_header;
 
 #define get_vec_header(vec) (((vec_header *)vec) - 1)
 #define get_vec_header_const(vec) (((const vec_header *)vec) - 1)
 
-void *vec_make(size_t elem_size, size_t len, size_t capacity) {
+vec_config_t vec_config(size_t value_size, size_t len, size_t capacity) {
+    vec_config_t c;
+    c.value_size = value_size;
+    c.len = len;
+    c.capacity = capacity;
+    c.malloc_func = &malloc;
+    c.realloc_func = &realloc;
+    return c;
+}
+
+void *vec_make_from_config(const vec_config_t *config) {
     vec_header *s = NULL;
     char *data = NULL;
+    size_t capacity = config->capacity;
 
     if (capacity == 0) {
         ++capacity;
     }
-    s = malloc(capacity * elem_size + sizeof(vec_header));
+    s = config->malloc_func(capacity * config->value_size + sizeof(vec_header));
     data = (void *)(s + 1);
-    s->len = len;
+    s->value_size = config->value_size;
+    s->len = config->len;
     s->capacity = capacity;
-    s->elem_size = elem_size;
-    memset(data, 0, len * elem_size);
+    s->malloc_func = config->malloc_func;
+    s->realloc_func = config->realloc_func;
+    memset(data, 0, s->len * s->value_size);
     return data;
+}
+
+void *vec_make(size_t value_size, size_t len, size_t capacity) {
+    vec_config_t config = vec_config(value_size, len, capacity);
+    return vec_make_from_config(&config);
 }
 
 void vec_del(void *vec) {
@@ -62,7 +82,8 @@ static vec_header *vec_grow_to_fit(void *vec, size_t n) {
         capacity_changed = 1;
     }
     if (capacity_changed) {
-        header = realloc(header, header->capacity * header->elem_size + sizeof(vec_header));
+        header = header->realloc_func(header,
+                                      header->capacity * header->value_size + sizeof(vec_header));
     }
 
     return header;
@@ -83,11 +104,11 @@ void *vec_appendnv(void *vec, size_t n, ...) {
     header = vec_grow_to_fit(vec, n);
 
     data = (void *)(header + 1);
-    data += header->len * header->elem_size;
+    data += header->len * header->value_size;
 
     for (narg = 0; narg < n; ++narg) {
         i64 = va_arg(args, int64_t);
-        switch (header->elem_size) {
+        switch (header->value_size) {
             case sizeof(int8_t):
                 i8 = (int8_t)i64;
                 memcpy(data, &i8, sizeof(int8_t));
@@ -106,7 +127,7 @@ void *vec_appendnv(void *vec, size_t n, ...) {
             default:
                 assert(0 && "unsupported value data size");
         }
-        data += header->elem_size;
+        data += header->value_size;
     }
 
     va_end(args);
@@ -127,12 +148,12 @@ void *vec_appendnp(void *vec, size_t n, ...) {
     header = vec_grow_to_fit(vec, n);
 
     data = (void *)(header + 1);
-    data += header->len * header->elem_size;
+    data += header->len * header->value_size;
 
     for (narg = 0; narg < n; ++narg) {
         arg = va_arg(args, void *);
-        memcpy(data, arg, header->elem_size);
-        data += header->elem_size;
+        memcpy(data, arg, header->value_size);
+        data += header->value_size;
     }
 
     va_end(args);
@@ -169,7 +190,7 @@ void *vec_back(void *vec) {
         return NULL;
     }
     header = get_vec_header(vec);
-    return data + ((header->len - 1) * header->elem_size);
+    return data + ((header->len - 1) * header->value_size);
 }
 
 void *vec_sub(const void *vec, size_t start, int end) {
@@ -194,7 +215,7 @@ void *vec_sub(const void *vec, size_t start, int end) {
     }
 
     begin = (const void *)(header + 1);
-    begin += start * header->elem_size;
+    begin += start * header->value_size;
     if (end < 0) {
         computed_len = (int)(header->len) - (int)(start) + end + 1;
     } else {
@@ -205,9 +226,9 @@ void *vec_sub(const void *vec, size_t start, int end) {
     }
     sublen = (size_t)(computed_len);
 
-    new = vec_make(header->elem_size, 0, sublen);
+    new = vec_make(header->value_size, 0, sublen);
     new_header = get_vec_header(new);
-    memcpy(new, begin, sublen * new_header->elem_size);
+    memcpy(new, begin, sublen * new_header->value_size);
     new_header->len = sublen;
 
     return new;
@@ -219,7 +240,7 @@ static void vec_sort_any(void *vec, int (*less)(void *, size_t, size_t)) {
     size_t j = 0;
     const size_t len = vec_len(vec);
     vec_header *header = NULL;
-    char swapbuf[1000]; /* TODO: need dynamic allocation if the size to swap is bigger. */
+    char *swapbuf = NULL;
     void *i_data = NULL;
     void *j_data = NULL;
     char *data = vec;
@@ -229,19 +250,23 @@ static void vec_sort_any(void *vec, int (*less)(void *, size_t, size_t)) {
     }
     header = get_vec_header(vec);
 
+    swapbuf = header->malloc_func(header->value_size);
+
     assert(1000 > header->elem_size);
 
     for (i = 0; i < len; ++i) {
         for (j = i + 1; j < len; ++j) {
             if (less(vec, j, i)) {
-                i_data = data + i * header->elem_size;
-                j_data = data + j * header->elem_size;
-                memcpy(swapbuf, i_data, header->elem_size);
-                memcpy(i_data, j_data, header->elem_size);
-                memcpy(j_data, swapbuf, header->elem_size);
+                i_data = data + i * header->value_size;
+                j_data = data + j * header->value_size;
+                memcpy(swapbuf, i_data, header->value_size);
+                memcpy(i_data, j_data, header->value_size);
+                memcpy(j_data, swapbuf, header->value_size);
             }
         }
     }
+
+    free(swapbuf);
 }
 
 void vec_sort(void *vec, int (*less_func)(void *, size_t, size_t)) { vec_sort_any(vec, less_func); }

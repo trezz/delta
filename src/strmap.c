@@ -125,21 +125,24 @@ typedef struct _strmap_bucket {
 } _strmap_bucket;
 
 typedef struct _map {
-    size_t hash_seed;
     size_t value_size;
-    size_t len;
     size_t capacity;
+    void* (*malloc_func)(size_t);
+    void* (*realloc_func)(void*, size_t);
+    int (*strncmp_func)(const char*, const char*, size_t);
 
+    size_t len;
     size_t nb_buckets;
     _strmap_bucket* buckets;
 
+    size_t hash_seed;
     char* keys;
     size_t keys_len;
     size_t keys_capacity;
 } _map;
 
 static void* init_new_bucket(const _map* m, _strmap_bucket* b) {
-    if ((b->values = malloc(m->value_size * MAPB_CAPA)) == NULL) {
+    if ((b->values = m->malloc_func(m->value_size * MAPB_CAPA)) == NULL) {
         return NULL;
     }
     b->len = 0;
@@ -147,33 +150,47 @@ static void* init_new_bucket(const _map* m, _strmap_bucket* b) {
     return b;
 }
 
-strmap_t strmap_make(size_t value_size, size_t capacity) {
+strmap_config_t strmap_config(size_t value_size, size_t capacity) {
+    strmap_config_t c;
+    c.value_size = value_size;
+    c.capacity = capacity;
+    c.malloc_func = &malloc;
+    c.realloc_func = &realloc;
+    c.strncmp_func = &strncmp;
+    return c;
+}
+
+strmap_t strmap_make_from_config(const strmap_config_t* config) {
     _map* m = NULL;
     size_t i = 0;
 
-    if ((m = malloc(sizeof(_map))) == NULL) {
+    if ((m = config->malloc_func(sizeof(_map))) == NULL) {
         return NULL;
     }
 
-    if (capacity == 0) {
-        capacity = 1;
+    m->value_size = config->value_size;
+    m->capacity = config->capacity;
+    m->malloc_func = config->malloc_func;
+    m->realloc_func = config->realloc_func;
+    m->strncmp_func = config->strncmp_func;
+
+    if (m->capacity == 0) {
+        ++m->capacity;
     }
-    while (capacity % 8 != 0) {
-        ++capacity;
+    while (m->capacity % 8 != 0) {
+        ++m->capacity;
     }
+
+    m->len = 0;
 
     m->hash_seed = 13;
-    m->value_size = value_size;
-    m->len = 0;
-    m->capacity = capacity;
-    m->nb_buckets = capacity / MAPB_CAPA;
-    if ((m->buckets = malloc(sizeof(_strmap_bucket) * m->nb_buckets)) == NULL) {
+    m->nb_buckets = m->capacity / MAPB_CAPA;
+    if ((m->buckets = m->malloc_func(sizeof(_strmap_bucket) * m->nb_buckets)) == NULL) {
         return NULL;
     }
-
-    m->keys_capacity = 1024;
     m->keys_len = 0;
-    if ((m->keys = malloc(m->keys_capacity)) == NULL) {
+    m->keys_capacity = 1024;
+    if ((m->keys = m->malloc_func(m->keys_capacity)) == NULL) {
         return NULL;
     }
 
@@ -185,6 +202,11 @@ strmap_t strmap_make(size_t value_size, size_t capacity) {
     }
 
     return m;
+}
+
+strmap_t strmap_make(size_t value_size, size_t capacity) {
+    strmap_config_t config = strmap_config(value_size, capacity);
+    return strmap_make_from_config(&config);
 }
 
 void strmap_del(strmap_t map) {
@@ -235,7 +257,7 @@ static int find_bucket_pos(const _map* m, const char* key, size_t key_len,
         for (i = 0; i < b->len; ++i) {
             if (h == b->hash[i]) {
                 const char* bkey = m->keys + b->key_positions[i];
-                if (strncmp(key, bkey, key_len) != 0) {
+                if (m->strncmp_func(key, bkey, key_len) != 0) {
                     continue;
                 }
                 break;
@@ -299,13 +321,13 @@ int strmap_erase(strmap_t map, const char* key) {
  * The inserted key position is returned on success.
  * SIZE_MAX is returned in case of error.
  */
-static size_t append_new_key(_map* m, const char* key) {
-    const size_t key_len = strlen(key) + 1;
+static size_t append_new_key(_map* m, const char* key, size_t key_len) {
     size_t key_pos = 0;
 
+    ++key_len;
     while (m->keys_len + key_len > m->keys_capacity) {
         m->keys_capacity *= 2;
-        if ((m->keys = realloc(m->keys, m->keys_capacity)) == NULL) {
+        if ((m->keys = m->realloc_func(m->keys, m->keys_capacity)) == NULL) {
             return SIZE_MAX;
         }
     }
@@ -344,7 +366,7 @@ static void* strmap_insert(_map* m, const char* key, const void* val_ptr) {
     }
     memcpy(bucket_val(m, b, pos), val_ptr, m->value_size);
     b->hash[pos] = h;
-    if ((b->key_positions[pos] = append_new_key(m, key)) == SIZE_MAX) {
+    if ((b->key_positions[pos] = append_new_key(m, key, key_len)) == SIZE_MAX) {
         return NULL;
     }
 

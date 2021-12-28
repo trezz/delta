@@ -6,9 +6,35 @@
 typedef void* strmap_t;
 
 /*
+ * Configuration of a strmap.
+ */
+typedef struct _strmap_config {
+    /* Size of the mapped value type. */
+    size_t value_size;
+    /* Initial capacity of the map. */
+    size_t capacity;
+    /* Allocator function (the default config uses malloc). */
+    void* (*malloc_func)(size_t);
+    /* Re-allocator function (the default config uses realloc). */
+    void* (*realloc_func)(void*, size_t);
+    /* String comparison function (the default config uses strncmp). */
+    int (*strncmp_func)(const char*, const char*, size_t);
+} strmap_config_t;
+
+/*
+ * Returns a new configuration of an strmap.
+ */
+strmap_config_t strmap_config(size_t value_size, size_t capacity);
+
+/*
+ * Returns a new map configured according to the provided configuration.
+ * NULL is returned in case of error.
+ */
+strmap_t strmap_make_from_config(const strmap_config_t* config);
+
+/*
  * Returns a new map.
  * It is heap allocated to store at least the given capacity.
- *
  * NULL is returned in case of error.
  */
 strmap_t strmap_make(size_t value_size, size_t capacity);
