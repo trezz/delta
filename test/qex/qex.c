@@ -270,11 +270,14 @@ static char* index_tsv_line(qex_t* q, char* line, size_t lineno) {
     /* here, the entire line is parsed. If the range does not match with the
      * requested user one, do nothing more. */
     if (qex_is_equal(&q->_range, &q->_user_range)) {
-        size_t n = 0;
         char* key = query;
         key[query_size] = 0;
-        strmap_get(q->_queries_in_range, key, &n);
-        q->_queries_in_range = strmap_addv(q->_queries_in_range, key, n + 1);
+        size_t* maybe_n = strmap_at_withlen(q->_queries_in_range, key, query_size);
+        if (maybe_n) {
+            ++(*maybe_n);
+        } else {
+            q->_queries_in_range = strmap_addv(q->_queries_in_range, key, 1);
+        }
     }
 
     /* returns null if this is the end of file */
@@ -288,12 +291,14 @@ static void build_most_popular_queries_set(qex_t* q) {
 
         sprintf(buf, "%zu", n);
 
-        char** queries = NULL;
-        if (!strmap_get(q->_popular_queries, buf, &queries)) {
-            queries = vec_make(sizeof(char*), 0, 10);
+        char*** maybe_queries = strmap_at(q->_popular_queries, buf);
+        if (maybe_queries) {
+            *maybe_queries = vec_appendv(*maybe_queries, it.key);
+        } else {
+            const char** queries = vec_make(sizeof(char*), 1, 10);
+            queries[0] = it.key;
+            q->_popular_queries = strmap_addv(q->_popular_queries, buf, queries);
         }
-        queries = vec_appendv(queries, it.key);
-        q->_popular_queries = strmap_addv(q->_popular_queries, buf, queries);
     }
 }
 
@@ -310,10 +315,9 @@ static void print_nth_most_popular_queries(qex_t* q, size_t num) {
     vec_sort(ns, popular_queries_sorter);
     for (int i = 0; i < vec_len(ns); ++i) {
         char* num_queries = ns[i];
-        char** queries;
-        strmap_get(q->_popular_queries, num_queries, &queries);
-        for (int j = 0; j < vec_len(queries); ++j) {
-            char* query = queries[j];
+        char*** queries = strmap_at(q->_popular_queries, num_queries);
+        for (int j = 0; j < vec_len(*queries); ++j) {
+            char* query = (*queries)[j];
             if (num-- == 0) {
                 goto end;
             }
@@ -327,6 +331,8 @@ end:
 /************************* Entry point ***************************************/
 
 int main(int argc, char** argv) {
+    printf("# START\n");
+
     /* parse arguments */
     args_t args = parse_options(argc, argv);
 
@@ -342,6 +348,7 @@ int main(int argc, char** argv) {
     strmap_t buffers = strmap_make(sizeof(char*), vec_len(args.files));
 
     for (int i = 0; i < vec_len(args.files); ++i) {
+        printf("# OPEN\n");
         char* file = args.files[i];
         /* read whole file content into buffer */
         FILE* f = fopen(file, "r");
@@ -357,6 +364,7 @@ int main(int argc, char** argv) {
         buf[length] = 0;
         fclose(f);
 
+        printf("# INDEX\n");
         /* index the file using Qex object and catch eventual errors */
         size_t lineno = 1;
         for (char* line = buf; line; line = index_tsv_line(&qex, line, lineno)) {
@@ -367,6 +375,8 @@ int main(int argc, char** argv) {
             ++lineno;
         }
     }
+
+    printf("# COMPUTE\n");
 
     /* extract queries based on input arguments */
     if (args.num == 0) {

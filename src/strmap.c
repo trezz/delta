@@ -278,20 +278,27 @@ static int find_bucket_pos(const _map* m, const char* key, size_t key_len,
     return i < b->len;
 }
 
-int strmap_get(const strmap_t map, const char* key, void* v) {
+void* strmap_at_withlen(const strmap_t map, const char* key, size_t key_len) {
     const _map* m = map;
     _strmap_bucket* b = NULL;
     size_t pos = 0;
     unsigned long h = 0;
-    const size_t key_len = strlen(key);
 
     if (!find_bucket_pos(m, key, key_len, &h, &b, &pos)) {
+        return NULL;
+    }
+    return bucket_val(m, b, pos);
+}
+
+int strmap_get_withlen(const strmap_t map, const char* key, size_t key_len, void* v) {
+    const _map* m = map;
+    const void* data = strmap_at_withlen(map, key, key_len);
+    if (data == NULL) {
         return 0;
     }
     if (v != NULL) {
-        memcpy(v, bucket_val(m, b, pos), m->value_size);
+        memcpy(v, data, m->value_size);
     }
-
     return 1;
 }
 
