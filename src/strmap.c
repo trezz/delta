@@ -12,9 +12,14 @@
 #define MAPB_CAPA 8
 #define MAP_MAX_LOAD_FACTOR 6.5
 
+typedef struct strmap_key_t {
+    size_t pos;
+    size_t len;
+} strmap_key_t;
+
 typedef struct _strmap_bucket {
     size_t hash[MAPB_CAPA];
-    size_t key_positions[MAPB_CAPA];
+    strmap_key_t keys[MAPB_CAPA];
     char* values;
     size_t len;
     struct _strmap_bucket* next;
@@ -131,7 +136,7 @@ static int find_bucket_pos(const _map* m, const char* key, size_t key_len,
     while (1) {
         for (i = 0; i < b->len; ++i) {
             if (h == b->hash[i]) {
-                const char* bkey = m->keys + b->key_positions[i];
+                const char* bkey = m->keys + b->keys[i].pos;
                 if (memcmp(key, bkey, key_len) != 0) {
                     continue;
                 }
@@ -190,7 +195,7 @@ int strmap_erase(strmap_t map, const char* key) {
     }
     if (b->len > 1) {
         b->hash[pos] = b->hash[b->len - 1];
-        b->key_positions[pos] = b->key_positions[b->len - 1];
+        b->keys[pos] = b->keys[b->len - 1];
         memcpy(bucket_val(m, b, pos), bucket_val(m, b, b->len - 1),
                m->value_size);
     }
@@ -249,10 +254,14 @@ static void* strmap_insert(_map* m, const char* key, const void* val_ptr) {
         pos = 0;
     }
     memcpy(bucket_val(m, b, pos), val_ptr, m->value_size);
-    b->hash[pos] = h;
-    if ((b->key_positions[pos] = append_new_key(m, key, key_len)) == SIZE_MAX) {
+
+    const size_t new_key_pos = append_new_key(m, key, key_len);
+    if (new_key_pos == SIZE_MAX) {
         return NULL;
     }
+
+    b->hash[pos] = h;
+    b->keys[pos] = (strmap_key_t){.pos = new_key_pos, .len = key_len};
 
     ++b->len;
     ++m->len;
@@ -351,7 +360,7 @@ int strmap_next(strmap_iterator_t* it) {
         _strmap_bucket* b = it->_b;
         for (; b != NULL; it->_b = b = b->next, it->_kpos = 0) {
             if (it->_kpos < b->len) {
-                it->key = m->keys + b->key_positions[it->_kpos];
+                it->key = m->keys + b->keys[it->_kpos].pos;
                 it->val_ptr = bucket_val(m, b, it->_kpos);
                 ++it->_kpos;
                 return 1;
