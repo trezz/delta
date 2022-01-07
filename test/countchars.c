@@ -37,12 +37,12 @@ int main(int argc, char** argv) {
     // Iterate on each mapped pairs to fill the chars vector.
     for (strmap_iterator_t it = strmap_iterator(char_count_map);
          strmap_next(&it);) {
-        chars_vec = vec_storeback(chars_vec, &it.key);
+        vec_append(&chars_vec, it.key);
     }
 
     // Sort the chars vector in decreasing order.
     // Use the map as context for sorting to access the characters count.
-    vec_sort_ctx(chars_vec, chars_desc_count_sorter, char_count_map);
+    vec_sort(chars_vec, chars_desc_count_sorter, char_count_map);
 
     // Print.
     for (size_t i = 0; i < vec_len(chars_vec); ++i) {

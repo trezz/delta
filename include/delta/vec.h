@@ -34,29 +34,20 @@ size_t vec_len(const void* v);
 // The vector is reallocated if it hasn't enough capacity.
 // The input vector may be invalidated. Do not attempt to use it after calling
 // this function.
-void* vec_resize(void* v, size_t n);
+void vec_resize(void* v_ptr, size_t n);
 
-// vec_appendn appends exactly `n` literal values to the vector and returns the
-// new vector. The vector is set as invalid in case of error.
-// Literal values may be int, char, etc... and pointers. To store structured
-// values, use vec_appendnp.
+// vec_append appends the given value to the vector pointed to by v_ptr.
+// The vector is set as invalid in case of error.
 // The vector is reallocated if it has not enough capacity to hold the new
-// value. The input vector may be invalidated. Do not attempt to use it after
-// calling this function.
-void* vec_appendn(void* v, size_t n, ...);
-
-#define vec_append(vec, v) vec_appendn(vec, 1, v)
-
-// vec_storebackn stores exactly `n` values at the end of the vector and returns
-// the new vector. The vector is set as invalid in case of error.
-// Values to store must be passed by pointers. Their content are copied into the
-// vector.
-// The vector is reallocated if it has not enough capacity to hold the new
-// value. The input vector may be invalidated. Do not attempt to use it after
-// calling this function.
-void* vec_storebackn(void* v, size_t n, ...);
-
-#define vec_storeback(vec, ptr) vec_storebackn(vec, 1, ptr)
+// value.
+#define vec_append(v_ptr, val)                          \
+    do {                                                \
+        const size_t len##__line__ = vec_len(*(v_ptr)); \
+        vec_resize(v_ptr, len##__line__ + 1);           \
+        if (vec_valid(*(v_ptr))) {                      \
+            (*(v_ptr))[len##__line__] = (val);          \
+        }                                               \
+    } while (0)
 
 // vec_pop pops the last value from the vector and decreases its size by one.
 // Popping from an empty vector does nothing.
@@ -65,23 +56,13 @@ void vec_pop(void* v);
 // vec_clear clears the vector. The internal storage isn't freed.
 void vec_clear(void* v);
 
-// vec_back returns the address of the last value or NULL if the vec is empty.
-void* vec_back(void* v);
-
-// Less function pointer taking a vector and two indices.
-// The function must return whether vec[a] <= vec[b].
-typedef int (*less_f)(void* /* vec */, size_t /* a */, size_t /* b */);
-
 // Less function pointer taking a vector, two indices and a user-defined
 // context. The function must return whether vec[a] <= vec[b].
-typedef int (*less_with_ctx_f)(void* /* vec */, size_t /* a */, size_t /* b */,
-                               void* /* ctx */);
+typedef int (*less_f)(void* /* vec */, size_t /* a */, size_t /* b */,
+                      void* /* ctx */);
 
 // vec_sort sorts the vector using the provided less function.
-void vec_sort(void* v, less_f less);
-
-// vec_sort_ctx sorts the vector using the provided less function.
-// The less function takes a pointer on a context data.
-void vec_sort_ctx(void* v, less_with_ctx_f less, void* ctx);
+// The less function takes a pointer on a user-defined context data.
+void vec_sort(void* v, less_f less, void* ctx);
 
 #endif  // DELTA_VEC_H_
