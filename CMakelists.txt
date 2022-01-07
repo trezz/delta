@@ -4,8 +4,9 @@ project("delta")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -std=c11")
 
 add_library(delta
-    ${CMAKE_SOURCE_DIR}/src/vec.c
-    ${CMAKE_SOURCE_DIR}/src/strmap.c
+  ${CMAKE_SOURCE_DIR}/src/hash.c
+  ${CMAKE_SOURCE_DIR}/src/strmap.c
+  ${CMAKE_SOURCE_DIR}/src/vec.c
 )
 
 target_include_directories(delta PUBLIC
@@ -16,8 +17,9 @@ target_include_directories(delta PUBLIC
 install(TARGETS delta DESTINATION lib)
 install(
   FILES
-    include/delta/vec.h
+    include/delta/hash.h
     include/delta/strmap.h
+    include/delta/vec.h
   DESTINATION
     include/delta)
 
