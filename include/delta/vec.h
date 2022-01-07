@@ -4,10 +4,21 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
+typedef struct vec_header_t {
+    size_t value_size;
+    size_t len;
+    size_t capacity;
+    bool valid;
+} vec_header_t;
+
+#define vec_header(v) (((vec_header_t*)v) - 1)
+#define vec_header_const(v) (((const vec_header_t*)v) - 1)
+
 // vec_valid returns true if the vector is valid.
-bool vec_valid(void* v);
+inline bool vec_valid(void* v) { return v != NULL && vec_header(v)->valid; }
 
 // vec_make returns a new vector.
 //
@@ -23,10 +34,14 @@ void* vec_make(size_t value_size, size_t len, size_t capacity);
 // vec_del deletes the vector.
 // The underlying memory is freed.
 // If NULL is given, nothing is deleted and no error occurs.
-void vec_del(void* v);
+inline void vec_del(void* v) {
+    if (v) {
+        free(vec_header(v));
+    }
+}
 
 // vec_len returns the number of elements the vector holds.
-size_t vec_len(const void* v);
+inline size_t vec_len(const void* v) { return vec_header_const(v)->len; }
 
 // vec_resize resizes the vector to n and returns the resized vector.
 // The vector is set as invalid in case of error.
@@ -59,10 +74,18 @@ void* vec_storebackn(void* v, size_t n, ...);
 
 // vec_pop pops the last value from the vector and decreases its size by one.
 // Popping from an empty vector does nothing.
-void vec_pop(void* v);
+inline void vec_pop(void* v) {
+    vec_header_t* h = vec_header(v);
+    if (h->len > 0) {
+        --h->len;
+    }
+}
 
 // vec_clear clears the vector. The internal storage isn't freed.
-void vec_clear(void* v);
+inline void vec_clear(void* v) {
+    vec_header_t* h = vec_header(v);
+    h->len = 0;
+}
 
 // vec_back returns the address of the last value or NULL if the vec is empty.
 void* vec_back(void* v);
@@ -83,4 +106,4 @@ void vec_sort(void* v, less_f less);
 // The less function takes a pointer on a context data.
 void vec_sort_ctx(void* v, less_with_ctx_f less, void* ctx);
 
-#endif /* DELTA_VEC_H_ */
+#endif  // DELTA_VEC_H_

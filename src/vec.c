@@ -5,18 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct vec_header_t {
-    size_t value_size;
-    size_t len;
-    size_t capacity;
-    bool valid;
-} vec_header_t;
-
-#define vec_header(v) (((vec_header_t *)v) - 1)
-#define vec_header_const(v) (((const vec_header_t *)v) - 1)
-
-bool vec_valid(void *v) { return v != NULL && vec_header(v)->valid; }
-
 void *vec_make(size_t value_size, size_t len, size_t capacity) {
     vec_header_t *h = malloc(capacity * value_size + sizeof(vec_header_t));
     if (h == NULL) {
@@ -35,14 +23,6 @@ void *vec_make(size_t value_size, size_t len, size_t capacity) {
 
     return data;
 }
-
-void vec_del(void *v) {
-    if (v != NULL) {
-        free(vec_header(v));
-    }
-}
-
-size_t vec_len(const void *v) { return vec_header_const(v)->len; }
 
 // vec_header_grow_to_fit grows the capacity of the vector to at least n.
 // If an error occurs, the vector is set as invalid.
@@ -152,18 +132,6 @@ void *vec_storebackn(void *v, size_t n, ...) {
 
     h->len += n;
     return h + 1;
-}
-
-void vec_pop(void *v) {
-    vec_header_t *h = vec_header(v);
-    if (h->len > 0) {
-        --h->len;
-    }
-}
-
-void vec_clear(void *v) {
-    vec_header_t *h = vec_header(v);
-    h->len = 0;
 }
 
 void *vec_back(void *v) {

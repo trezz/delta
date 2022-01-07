@@ -348,7 +348,17 @@ end:
 
 /************************* Entry point ***************************************/
 
+#include "delta/str.h"
+
+static void teststrings() {
+    str_t s = str_from_cstr("hello");
+    str_t s2 = str_from(s.data);
+    printf("%s %s\n", s.data, s2.data);
+}
+
 int main(int argc, char** argv) {
+    teststrings();
+
     printf("# START\n");
 
     /* parse arguments */
