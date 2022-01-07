@@ -350,17 +350,7 @@ end:
 
 #include "delta/str.h"
 
-static void teststrings() {
-    str_t s = str_from_cstr("hello");
-    str_t s2 = str_from(s.data);
-    printf("%s %s\n", s.data, s2.data);
-}
-
 int main(int argc, char** argv) {
-    teststrings();
-
-    printf("# START\n");
-
     /* parse arguments */
     args_t args = parse_options(argc, argv);
 
@@ -376,7 +366,6 @@ int main(int argc, char** argv) {
     strmap_t buffers = strmap_make(sizeof(char*), vec_len(args.files));
 
     for (int i = 0; i < vec_len(args.files); ++i) {
-        printf("# OPEN\n");
         char* file = args.files[i];
         /* read whole file content into buffer */
         FILE* f = fopen(file, "r");
@@ -392,7 +381,6 @@ int main(int argc, char** argv) {
         buf[length] = 0;
         fclose(f);
 
-        printf("# INDEX\n");
         /* index the file using Qex object and catch eventual errors */
         size_t lineno = 1;
         for (char* line = buf; line;
@@ -404,8 +392,6 @@ int main(int argc, char** argv) {
             ++lineno;
         }
     }
-
-    printf("# COMPUTE\n");
 
     /* extract queries based on input arguments */
     if (args.num == 0) {

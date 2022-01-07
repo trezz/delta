@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.6)
 project("delta")
 
-set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -O3 -std=c11")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -std=c11")
 
 add_library(delta
     ${CMAKE_SOURCE_DIR}/src/vec.c
@@ -21,4 +21,4 @@ install(
   DESTINATION
     include/delta)
 
-add_subdirectory(test/qex)
+add_subdirectory(test)
