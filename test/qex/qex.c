@@ -190,7 +190,7 @@ typedef struct qex {
 
 static void qex_init(qex_t* q, char* range) {
     q->_queries_in_range = strmap_make(sizeof(size_t), 0);
-    q->_popular_queries = strmap_make(sizeof(void*), 0);
+    q->_popular_queries = strmap_make(sizeof(str_t*), 0);
     parse_range(&q->_user_range, range);
 }
 
@@ -199,7 +199,7 @@ static void qex_del(qex_t* q) {
 
     for (strmap_iterator_t it = strmap_iterator(q->_popular_queries);
          strmap_next(&it);) {
-        char*** queries_ptr = it.val_ptr;
+        str_t** queries_ptr = it.val_ptr;
         vec_del(*queries_ptr);
     }
     strmap_del(q->_popular_queries);
@@ -243,10 +243,9 @@ static char* index_tsv_line(qex_t* q, char* line, size_t lineno) {
     /* here, the entire line is parsed. If the range does not match with the
      * requested user one, do nothing more. */
     if (qex_is_equal(&q->_range, &q->_user_range)) {
-        char* key = query;
-        key[query_size] = 0;
-        size_t* maybe_n =
-            strmap_at_withlen(q->_queries_in_range, key, query_size);
+        query[query_size] = 0;
+        str_t key = {.data = query, .len = query_size};
+        size_t* maybe_n = strmap_at(q->_queries_in_range, key);
         if (maybe_n) {
             ++(*maybe_n);
         } else {
@@ -261,44 +260,45 @@ static char* index_tsv_line(qex_t* q, char* line, size_t lineno) {
 static void build_most_popular_queries_set(qex_t* q) {
     for (strmap_iterator_t it = strmap_iterator(q->_queries_in_range);
          strmap_next(&it);) {
-        size_t n = *(int*)it.val_ptr;
+        const size_t n = *(int*)it.val_ptr;
         char buf[100];
 
-        sprintf(buf, "%zu", n);
+        const size_t key_len = sprintf(buf, "%zu", n);
+        const str_t key = {.data = buf, .len = key_len};
 
-        char*** maybe_queries = strmap_at(q->_popular_queries, buf);
+        str_t** maybe_queries = strmap_at(q->_popular_queries, key);
         if (maybe_queries) {
-            *maybe_queries = vec_append(*maybe_queries, it.key);
+            *maybe_queries = vec_storeback(*maybe_queries, &it.key);
         } else {
-            const char** queries = vec_make(sizeof(char*), 1, 1);
+            str_t* queries = vec_make(sizeof(str_t), 1, 1);
             queries[0] = it.key;
             q->_popular_queries =
-                strmap_addv(q->_popular_queries, buf, queries);
+                strmap_addv(q->_popular_queries, key, queries);
         }
     }
 }
 
 static int popular_queries_sorter(void* vec, size_t a, size_t b) {
-    char** v = vec;
-    return atoi(v[a]) > atoi(v[b]);
+    str_t* v = vec;
+    return atoi(v[a].data) > atoi(v[b].data);
 }
 
 static void print_nth_most_popular_queries(qex_t* q, size_t num) {
-    char** ns = vec_make(sizeof(char*), 0, strmap_len(q->_popular_queries));
+    str_t* ns = vec_make(sizeof(str_t), 0, strmap_len(q->_popular_queries));
     for (strmap_iterator_t it = strmap_iterator(q->_popular_queries);
          strmap_next(&it);) {
-        ns = vec_append(ns, it.key);
+        ns = vec_storeback(ns, &it.key);
     }
     vec_sort(ns, popular_queries_sorter);
     for (int i = 0; i < vec_len(ns); ++i) {
-        char* num_queries = ns[i];
-        char*** queries = strmap_at(q->_popular_queries, num_queries);
+        str_t num_queries = ns[i];
+        str_t** queries = strmap_at(q->_popular_queries, num_queries);
         for (int j = 0; j < vec_len(*queries); ++j) {
-            char* query = (*queries)[j];
+            str_t query = (*queries)[j];
             if (num-- == 0) {
                 goto end;
             }
-            printf("%s %s\n", query, num_queries);
+            printf("%s %s\n", query.data, num_queries.data);
         }
     }
 end:
@@ -332,7 +332,8 @@ int main(int argc, char** argv) {
         size_t length = ftell(f);
         fseek(f, 0, SEEK_SET);
         char* buf = malloc(sizeof(char) * length + 1);
-        buffers = strmap_addv(buffers, file, buf);
+        buffers = strmap_addv(buffers,
+                              (str_t){.data = file, .len = strlen(file)}, buf);
         if (fread(buf, length, 1, f) != 1) {
             printf("failed to read file\n");
             exit(1);

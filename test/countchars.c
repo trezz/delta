@@ -3,7 +3,8 @@
 
 #include "delta/vec.h"
 
-static char key[2] = {0, 0};
+static char key_data[2] = {0, 0};
+static str_t key = {.data = key_data, .len = 1};
 
 static int chars_desc_count_sorter(void* vec, size_t a, size_t b, void* ctx);
 
@@ -19,7 +20,7 @@ int main(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         const char* arg = argv[i];
 
-        while ((*key = *arg++) != 0) {
+        while ((key.data[0] = *arg++) != 0) {
             // Get the current count of the key from the map.
             size_t n = 0;
             strmap_get(char_count_map, key, &n);
@@ -31,12 +32,12 @@ int main(int argc, char** argv) {
 
     // Make a vector of char to sort the mapped characters by their counts in
     // decreasing order.
-    char** chars_vec = vec_make(sizeof(char*), 0, strmap_len(char_count_map));
+    str_t* chars_vec = vec_make(sizeof(str_t), 0, strmap_len(char_count_map));
 
     // Iterate on each mapped pairs to fill the chars vector.
     for (strmap_iterator_t it = strmap_iterator(char_count_map);
          strmap_next(&it);) {
-        chars_vec = vec_append(chars_vec, it.key);
+        chars_vec = vec_storeback(chars_vec, &it.key);
     }
 
     // Sort the chars vector in decreasing order.
@@ -45,10 +46,10 @@ int main(int argc, char** argv) {
 
     // Print.
     for (size_t i = 0; i < vec_len(chars_vec); ++i) {
-        const char* c = chars_vec[i];
+        const str_t c = chars_vec[i];
         size_t count = 0;
         strmap_get(char_count_map, c, &count);
-        printf("char '%s' counted %zu time(s)\n", c, count);
+        printf("char '%s' counted %zu time(s)\n", c.data, count);
     }
 
     // Delete the created containers.
@@ -58,7 +59,7 @@ int main(int argc, char** argv) {
 
 static int chars_desc_count_sorter(void* vec, size_t a, size_t b, void* ctx) {
     // Convert the input arguments to their respective types.
-    char** chars_vec = vec;
+    str_t* chars_vec = vec;
     strmap_t char_count_map = ctx;
 
     // Get the count of char a and b from the map.

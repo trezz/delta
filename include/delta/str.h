@@ -10,13 +10,10 @@ typedef struct str_t {
     size_t len;
 } str_t;
 
-#define str_from_cstr(S) \
-    (str_t) { .data = S, .len = sizeof(S) - 1 }
+#define str_from_cstr(cstr) \
+    (str_t) { .data = cstr, .len = sizeof(cstr) - 1 }
 
-inline str_t str_from(char* s) { return (str_t){.data = s, .len = strlen(s)}; }
-
-inline void str_del(str_t s) { free(s.data); }
-
-// TODO: string builder.
+#define str_from(str) \
+    (str_t) { .data = str, .len = strlen(str) }
 
 #endif  // DELTA_STR_H_

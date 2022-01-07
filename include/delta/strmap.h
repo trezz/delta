@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#include "delta/str.h"
+
 typedef void* strmap_t;
 
 /*
@@ -27,28 +29,19 @@ size_t strmap_len(const strmap_t m);
  * Searches the map for the given key and if found copies the associated value
  * at the address pointed to by v. Returns 0 if the key wasn't found in the map.
  */
-int strmap_get_withlen(const strmap_t m, const char* key, size_t key_len,
-                       void* v);
-#define strmap_get(map, key, v) \
-    strmap_get_withlen((map), (key), strlen(key), v);
+int strmap_get(const strmap_t m, str_t key, void* v);
 
 /*
  * Searches the map for the given key and if found returns a pointer on the
  * associated value. Returns NULL if the key wasn't found in the map.
  */
-void* strmap_at_withlen(const strmap_t m, const char* key, size_t key_len);
-#define strmap_at(map, key) strmap_at_withlen((map), (key), strlen(key));
-
-/*
- * Returns whether the map contains the given key of not.
- */
-#define strmap_contains(map, key) (strmap_get((map), (key), NULL))
+void* strmap_at(const strmap_t m, str_t key);
 
 /*
  * Removes the given key and its associated value from the map.
  * Returns whether the key was removed or not.
  */
-int strmap_erase(strmap_t map, const char* key);
+int strmap_erase(strmap_t map, str_t key);
 
 /*
  * Stores the given key and the associated value pointed to by val_ptr in the
@@ -63,7 +56,7 @@ int strmap_erase(strmap_t map, const char* key);
  *
  * NULL is returned in case of error.
  */
-strmap_t strmap_addp(strmap_t map, const char* key, const void* val_ptr);
+strmap_t strmap_addp(strmap_t map, str_t key, const void* val_ptr);
 
 /*
  * Stores the given key and the associated value in the map.
@@ -80,14 +73,14 @@ strmap_t strmap_addp(strmap_t map, const char* key, const void* val_ptr);
  *
  * NULL is returned in case of error.
  */
-strmap_t strmap_addv(strmap_t map, const char* key, ...);
+strmap_t strmap_addv(strmap_t map, str_t key, ...);
 
 /*
  * An iterator on a map.
  */
 typedef struct _strmap_iterator {
     /* Current key. */
-    const char* key;
+    str_t key;
     /* Pointer on the current value. */
     void* val_ptr;
 
