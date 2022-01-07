@@ -1,6 +1,6 @@
-# Delta - C generic containers inspired by Go
+# Delta - C11 generic containers inspired by Go
 
-The delta library provides the following containers, implemented in C89:
+The delta library provides the following containers, implemented in C11:
 * A "generic" string hashmap mapping C strings (`const char*`) keys to values of any type.
 * A "generic" vector.
 
