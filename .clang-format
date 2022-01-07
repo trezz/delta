@@ -2,7 +2,7 @@ Language: Cpp
 BasedOnStyle: Google
 
 # To match GitHub unified diff review view
-ColumnLimit: 100
+ColumnLimit: 80
 
 # Default indentation
 IndentWidth: 4
