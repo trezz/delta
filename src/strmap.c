@@ -23,9 +23,6 @@ typedef struct _strmap_bucket {
 typedef struct _map {
     size_t value_size;
     size_t capacity;
-    void* (*malloc_func)(size_t);
-    void* (*realloc_func)(void*, size_t);
-    int (*strncmp_func)(const char*, const char*, size_t);
 
     size_t len;
     size_t nb_buckets;
@@ -38,7 +35,7 @@ typedef struct _map {
 } _map;
 
 static void* init_new_bucket(const _map* m, _strmap_bucket* b) {
-    if ((b->values = m->malloc_func(m->value_size * MAPB_CAPA)) == NULL) {
+    if ((b->values = malloc(m->value_size * MAPB_CAPA)) == NULL) {
         return NULL;
     }
     b->len = 0;
@@ -46,29 +43,16 @@ static void* init_new_bucket(const _map* m, _strmap_bucket* b) {
     return b;
 }
 
-strmap_config_t strmap_config(size_t value_size, size_t capacity) {
-    strmap_config_t c;
-    c.value_size = value_size;
-    c.capacity = capacity;
-    c.malloc_func = &malloc;
-    c.realloc_func = &realloc;
-    c.strncmp_func = &strncmp;
-    return c;
-}
-
-strmap_t strmap_make_from_config(const strmap_config_t* config) {
+strmap_t strmap_make(size_t value_size, size_t capacity) {
     _map* m = NULL;
     size_t i = 0;
 
-    if ((m = config->malloc_func(sizeof(_map))) == NULL) {
+    if ((m = malloc(sizeof(_map))) == NULL) {
         return NULL;
     }
 
-    m->value_size = config->value_size;
-    m->capacity = config->capacity;
-    m->malloc_func = config->malloc_func;
-    m->realloc_func = config->realloc_func;
-    m->strncmp_func = config->strncmp_func;
+    m->value_size = value_size;
+    m->capacity = capacity;
 
     if (m->capacity == 0) {
         ++m->capacity;
@@ -81,13 +65,12 @@ strmap_t strmap_make_from_config(const strmap_config_t* config) {
 
     m->hash_seed = 13;
     m->nb_buckets = m->capacity / MAPB_CAPA;
-    if ((m->buckets = m->malloc_func(sizeof(_strmap_bucket) * m->nb_buckets)) ==
-        NULL) {
+    if ((m->buckets = malloc(sizeof(_strmap_bucket) * m->nb_buckets)) == NULL) {
         return NULL;
     }
     m->keys_len = 0;
     m->keys_capacity = 1024;
-    if ((m->keys = m->malloc_func(m->keys_capacity)) == NULL) {
+    if ((m->keys = malloc(m->keys_capacity)) == NULL) {
         return NULL;
     }
 
@@ -99,11 +82,6 @@ strmap_t strmap_make_from_config(const strmap_config_t* config) {
     }
 
     return m;
-}
-
-strmap_t strmap_make(size_t value_size, size_t capacity) {
-    strmap_config_t config = strmap_config(value_size, capacity);
-    return strmap_make_from_config(&config);
 }
 
 void strmap_del(strmap_t map) {
@@ -154,7 +132,7 @@ static int find_bucket_pos(const _map* m, const char* key, size_t key_len,
         for (i = 0; i < b->len; ++i) {
             if (h == b->hash[i]) {
                 const char* bkey = m->keys + b->key_positions[i];
-                if (m->strncmp_func(key, bkey, key_len) != 0) {
+                if (memcmp(key, bkey, key_len) != 0) {
                     continue;
                 }
                 break;
@@ -233,7 +211,7 @@ static size_t append_new_key(_map* m, const char* key, size_t key_len) {
     ++key_len;
     while (m->keys_len + key_len > m->keys_capacity) {
         m->keys_capacity *= 2;
-        if ((m->keys = m->realloc_func(m->keys, m->keys_capacity)) == NULL) {
+        if ((m->keys = realloc(m->keys, m->keys_capacity)) == NULL) {
             return SIZE_MAX;
         }
     }

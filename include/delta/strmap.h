@@ -6,33 +6,6 @@
 typedef void* strmap_t;
 
 /*
- * Configuration of a strmap.
- */
-typedef struct _strmap_config {
-    /* Size of the mapped value type. */
-    size_t value_size;
-    /* Initial capacity of the map. */
-    size_t capacity;
-    /* Allocator function (the default config uses malloc). */
-    void* (*malloc_func)(size_t);
-    /* Re-allocator function (the default config uses realloc). */
-    void* (*realloc_func)(void*, size_t);
-    /* String comparison function (the default config uses strncmp). */
-    int (*strncmp_func)(const char*, const char*, size_t);
-} strmap_config_t;
-
-/*
- * Returns a new configuration of an strmap.
- */
-strmap_config_t strmap_config(size_t value_size, size_t capacity);
-
-/*
- * Returns a new map configured according to the provided configuration.
- * NULL is returned in case of error.
- */
-strmap_t strmap_make_from_config(const strmap_config_t* config);
-
-/*
  * Returns a new map.
  * It is heap allocated to store at least the given capacity.
  * NULL is returned in case of error.
@@ -51,16 +24,17 @@ void strmap_del(strmap_t map);
 size_t strmap_len(const strmap_t m);
 
 /*
- * Searches the map for the given key and if found copies the associated value at the address
- * pointed to by v.
- * Returns 0 if the key wasn't found in the map.
+ * Searches the map for the given key and if found copies the associated value
+ * at the address pointed to by v. Returns 0 if the key wasn't found in the map.
  */
-int strmap_get_withlen(const strmap_t m, const char* key, size_t key_len, void* v);
-#define strmap_get(map, key, v) strmap_get_withlen((map), (key), strlen(key), v);
+int strmap_get_withlen(const strmap_t m, const char* key, size_t key_len,
+                       void* v);
+#define strmap_get(map, key, v) \
+    strmap_get_withlen((map), (key), strlen(key), v);
 
 /*
- * Searches the map for the given key and if found returns a pointer on the associated value.
- * Returns NULL if the key wasn't found in the map.
+ * Searches the map for the given key and if found returns a pointer on the
+ * associated value. Returns NULL if the key wasn't found in the map.
  */
 void* strmap_at_withlen(const strmap_t m, const char* key, size_t key_len);
 #define strmap_at(map, key) strmap_at_withlen((map), (key), strlen(key));
@@ -77,7 +51,8 @@ void* strmap_at_withlen(const strmap_t m, const char* key, size_t key_len);
 int strmap_erase(strmap_t map, const char* key);
 
 /*
- * Stores the given key and the associated value pointed to by val_ptr in the map.
+ * Stores the given key and the associated value pointed to by val_ptr in the
+ * map.
  *
  * Use this function to map strings to structured values.
  *
@@ -92,7 +67,8 @@ strmap_t strmap_addp(strmap_t map, const char* key, const void* val_ptr);
 
 /*
  * Stores the given key and the associated value in the map.
- * Unlike strmap_addp, the value must be passed by value (m = strmap_addv(m, "one", 1) adds the pair
+ * Unlike strmap_addp, the value must be passed by value (m = strmap_addv(m,
+ * "one", 1) adds the pair
  * ["one", 1]).
  *
  * Use this function to map strings to literal values like integers or pointers.
@@ -124,16 +100,18 @@ typedef struct _strmap_iterator {
 
 /*
  * Returns an iterator on the map.
- * The returned iterator is initialized to iterate on the map, but doesn't points to any key/value
- * pair yet. A call to strmap_next is required to set the iterator on the first key/value pair.
+ * The returned iterator is initialized to iterate on the map, but doesn't
+ * points to any key/value pair yet. A call to strmap_next is required to set
+ * the iterator on the first key/value pair.
  */
 strmap_iterator_t strmap_iterator(const strmap_t map);
 
 /*
- * Move the given iterator to the next key/value pair of the map, or to the first key/value pair if
- * the iterator was just initialized by strmap_iterator.
- * If the function returns 0, the iteration reached the end of the map and the iterator state is
- * undefined, otherwise the iterator is pointing to a key/value pair of the map.
+ * Move the given iterator to the next key/value pair of the map, or to the
+ * first key/value pair if the iterator was just initialized by strmap_iterator.
+ * If the function returns 0, the iteration reached the end of the map and the
+ * iterator state is undefined, otherwise the iterator is pointing to a
+ * key/value pair of the map.
  */
 int strmap_next(strmap_iterator_t* it);
 
