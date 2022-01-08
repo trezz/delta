@@ -245,12 +245,7 @@ static char* index_tsv_line(qex_t* q, char* line, size_t lineno) {
     if (qex_is_equal(&q->_range, &q->_user_range)) {
         query[query_size] = 0;
         str_t key = {.data = query, .len = query_size};
-        size_t* maybe_n = strmap_at(q->_queries_in_range, key);
-        if (maybe_n) {
-            ++(*maybe_n);
-        } else {
-            strmap_add(&q->_queries_in_range, key, 1);
-        }
+        ++strmap_get(&q->_queries_in_range, key);
     }
 
     /* returns null if this is the end of file */
@@ -265,15 +260,7 @@ static void build_most_popular_queries_set(qex_t* q) {
 
         const size_t key_len = sprintf(buf, "%zu", n);
         const str_t key = {.data = buf, .len = key_len};
-
-        vec_t(str_t)* maybe_queries = strmap_at(q->_popular_queries, key);
-        if (maybe_queries) {
-            vec_append(maybe_queries, it.key);
-        } else {
-            vec_t(str_t) queries = vec_make(str_t, 1, 1);
-            queries[0] = it.key;
-            strmap_add(&q->_popular_queries, key, queries);
-        }
+        vec_append(&strmap_get(&q->_popular_queries, key), it.key);
     }
 }
 
@@ -331,7 +318,7 @@ int main(int argc, char** argv) {
         fseek(f, 0, SEEK_SET);
         char* buf = malloc(sizeof(char) * length + 1);
         str_t key = {.data = file, .len = strlen(file)};
-        strmap_add(&buffers, key, buf);
+        strmap_get(&buffers, key) = buf;
         if (fread(buf, length, 1, f) != 1) {
             printf("failed to read file\n");
             exit(1);

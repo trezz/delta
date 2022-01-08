@@ -32,33 +32,45 @@ vec_t(void) vec_make_impl(size_t value_size, size_t len, size_t capacity);
 void vec_del(vec_t(void) v);
 
 // vec_len returns the number of elements the vector holds.
+// If NULL is given, returns 0.
 size_t vec_len(const vec_t(void) v);
 
 // vec_resize resizes the vector to n and returns the resized vector.
-// The vector is set as invalid in case of error.
-// The vector is reallocated if it hasn't enough capacity.
-// The input vector may be invalidated. Do not attempt to use it after calling
-// this function.
+//
+// WARNING:
+//      Resizing a pointer on a NULL vector is undefined behavior. Use vec_make
+//      or vec_append instead.
+//
+// The vector is set as invalid in case of error. The vector
+// is reallocated if it hasn't enough capacity. The input vector may be
+// invalidated. Do not attempt to use it after calling this function.
 void vec_resize(void* v_ptr, size_t n);
 
 // vec_append appends the given value to the vector pointed to by v_ptr.
-// The vector is set as invalid in case of error.
-// The vector is reallocated if it has not enough capacity to hold the new
-// value.
+// If a pointer on a NULL vector is given, a new vector is created and the value
+// is appended to it.
+// The vector is set as invalid in case of error. The vector
+// is reallocated if it has not enough capacity to hold the new value.
 #define vec_append(v_ptr, val)                          \
     do {                                                \
-        const size_t len##__line__ = vec_len(*(v_ptr)); \
-        vec_resize(v_ptr, len##__line__ + 1);           \
+        size_t len##__line__ = 0;                       \
+        if (*(v_ptr) == NULL) {                         \
+            *(v_ptr) = vec_make(__typeof__(val), 1, 1); \
+        } else {                                        \
+            len##__line__ = vec_len(*(v_ptr));          \
+            vec_resize(v_ptr, len##__line__ + 1);       \
+        }                                               \
         if (vec_valid(*(v_ptr))) {                      \
             (*(v_ptr))[len##__line__] = (val);          \
         }                                               \
     } while (0)
 
 // vec_pop pops the last value from the vector and decreases its size by one.
-// Popping from an empty vector does nothing.
+// Popping from an empty or a NULL vector does nothing.
 void vec_pop(vec_t(void) v);
 
 // vec_clear clears the vector. The internal storage isn't freed.
+// Clearing a NULL vector does nothing.
 void vec_clear(vec_t(void) v);
 
 // Less function pointer taking a vector, two indices and a user-defined
@@ -67,6 +79,7 @@ typedef int (*less_f)(vec_t(void), size_t, size_t, void*);
 
 // vec_sort sorts the vector using the provided less function.
 // The less function takes a pointer on a user-defined context data.
+// Sorting a NULL vector does nothing.
 void vec_sort(vec_t(void) v, less_f less, void* ctx);
 
 #endif  // DELTA_VEC_H_

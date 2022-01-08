@@ -37,13 +37,18 @@ vec_t(void) vec_make_impl(size_t value_size, size_t len, size_t capacity) {
     return data;
 }
 
-void vec_del(void *v) {
+void vec_del(vec_t(void) v) {
     if (v) {
         free(vec_header(v));
     }
 }
 
-size_t vec_len(const vec_t(void) v) { return vec_header_const(v)->len; }
+size_t vec_len(const vec_t(void) v) {
+    if (v == NULL) {
+        return 0;
+    }
+    return vec_header_const(v)->len;
+}
 
 // vec_header_grow_to_fit grows the capacity of the vector to at least n.
 // If an error occurs, the vector is set as invalid.
@@ -82,7 +87,11 @@ void vec_resize(void *v_ptr, size_t n) {
     *vec_ptr = h + 1;
 }
 
-void vec_pop(void *v) {
+void vec_pop(vec_t(void) v) {
+    if (v == NULL) {
+        return;
+    }
+
     vec_header_t *h = vec_header(v);
     if (h->len > 0) {
         --h->len;
@@ -90,12 +99,18 @@ void vec_pop(void *v) {
 }
 
 void vec_clear(vec_t(void) v) {
+    if (v == NULL) {
+        return;
+    }
     vec_header_t *h = vec_header(v);
     h->len = 0;
 }
 
 /* TODO: implement a quicksort and a stable sort. */
 void vec_sort(vec_t(void) v, less_f less, void *ctx) {
+    if (v == NULL) {
+        return;
+    }
     const vec_header_t *h = vec_header_const(v);
 
     // Temporary swap buffer that may be dynamically allocated in case the

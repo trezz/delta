@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -179,18 +178,6 @@ int strmap_erase(strmap_t(void) map, str_t key) {
     return 1;
 }
 
-int strmap_get(const strmap_t(void) map, str_t key, void* v) {
-    const _map* m = map;
-    const void* data = strmap_at(map, key);
-    if (data == NULL) {
-        return 0;
-    }
-    if (v != NULL) {
-        memcpy(v, data, m->value_size);
-    }
-    return 1;
-}
-
 void* strmap_at(const strmap_t(void) map, str_t key) {
     const _map* m = map;
     _strmap_bucket* b = NULL;
@@ -290,7 +277,7 @@ static _map* strmap_rehash(_map* m) {
     return n;
 }
 
-void* strmap_getp_impl(void* map_ptr, str_t key) {
+void* strmap_get_impl(void* map_ptr, str_t key) {
     _map** map = map_ptr;
     _map* m = *map;
 
@@ -330,7 +317,9 @@ void* strmap_getp_impl(void* map_ptr, str_t key) {
     ++b->len;
     ++m->len;
 
-    return bucket_val(m, b, pos);
+    void* value = bucket_val(m, b, pos);
+    memset(value, 0, m->value_size);
+    return value;
 }
 
 strmap_iterator_t strmap_iterator(strmap_t(void) map) {

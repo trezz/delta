@@ -35,38 +35,20 @@ size_t strmap_len(const strmap_t(void) m);
  */
 int strmap_erase(strmap_t(void) map, str_t key);
 
-// TODO:
-// strmap_get(&map, key) -> *ValueType : Insert if not exists and return a ptr.
-// strmap_contains(map, key) -> bool
+void* strmap_get_impl(void* map_ptr, str_t key);
 
-void* strmap_getp_impl(void* map_ptr, str_t key);
-
-/*
+// WARNING: the adress of the returned value must not be stored, as the map may
+//          be rehashed in the meantime.
 #define strmap_get(map_ptr, key) \
-    (*map_ptr) - (*map_ptr) + ((intptr_t)strmap_getp_impl((map_ptr), (key)))
-*/
-
-#define strmap_add(map_ptr, key, value)                             \
-    do {                                                            \
-        void* v_ptr##__line__ = strmap_getp_impl((map_ptr), (key)); \
-        intptr_t v_addr##__line__ = (intptr_t)v_ptr##__line__;      \
-        void* map_ptr_tmp##__line__ = *(map_ptr);                   \
-        *(map_ptr) = (void*)v_addr##__line__;                       \
-        **(map_ptr) = (value);                                      \
-        *(map_ptr) = map_ptr_tmp##__line__;                         \
-    } while (0)
-
-/*
- * Searches the map for the given key and if found copies the associated value
- * at the address pointed to by v. Returns 0 if the key wasn't found in the map.
- */
-int strmap_get(const strmap_t(void) m, str_t key, void* v);
+    (*((__typeof__(*map_ptr))strmap_get_impl((map_ptr), (key))))
 
 /*
  * Searches the map for the given key and if found returns a pointer on the
  * associated value. Returns NULL if the key wasn't found in the map.
  */
 void* strmap_at(const strmap_t(void) m, str_t key);
+
+#define strmap_contains(m, key) (strmap_at((m), (key)) != NULL)
 
 /*
  * An iterator on a map.
@@ -78,7 +60,7 @@ typedef struct _strmap_iterator {
     void* val_ptr;
 
     /* Internal state. */
-    strmap_t(void) _map;
+    strmap_t(void) _map;  // TODO: store the actual type.
     void* _b;
     size_t _bpos;
     size_t _kpos;
