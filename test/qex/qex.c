@@ -15,7 +15,7 @@ typedef struct args {
     int num;
 
     /* Input file paths. */
-    char** files;
+    vec_t(char*) files;
 } args_t;
 
 /** Print usage */
@@ -107,7 +107,7 @@ static args_t parse_options(int argc, char** argv) {
                 }
                 fclose(f);
                 if (args.files == NULL) {
-                    args.files = vec_make(sizeof(char*), 0, 1);
+                    args.files = vec_make(char*, 0, 1);
                 }
                 vec_append(&args.files, argv[i]);
             }
@@ -183,14 +183,14 @@ typedef struct qex {
     /**< User-defined range given as constructor's input argument */
     range_t _range;
     /**< Current range object being updated at each line parsing */
-    strmap_t _queries_in_range;
+    strmap_t(size_t) _queries_in_range;
     /**< Queries in requested range */
-    strmap_t _popular_queries;
+    strmap_t(vec_t(str_t)) _popular_queries;
 } qex_t;
 
 static void qex_init(qex_t* q, char* range) {
-    q->_queries_in_range = strmap_make(sizeof(size_t), 0);
-    q->_popular_queries = strmap_make(sizeof(str_t*), 0);
+    q->_queries_in_range = strmap_make(size_t, 0);
+    q->_popular_queries = strmap_make(str_t*, 0);
     parse_range(&q->_user_range, range);
 }
 
@@ -199,7 +199,7 @@ static void qex_del(qex_t* q) {
 
     for (strmap_iterator_t it = strmap_iterator(q->_popular_queries);
          strmap_next(&it);) {
-        str_t** queries_ptr = it.val_ptr;
+        vec_t(str_t)* queries_ptr = it.val_ptr;
         vec_del(*queries_ptr);
     }
     strmap_del(q->_popular_queries);
@@ -249,7 +249,7 @@ static char* index_tsv_line(qex_t* q, char* line, size_t lineno) {
         if (maybe_n) {
             ++(*maybe_n);
         } else {
-            q->_queries_in_range = strmap_addv(q->_queries_in_range, key, 1);
+            strmap_add(&q->_queries_in_range, key, 1);
         }
     }
 
@@ -266,25 +266,25 @@ static void build_most_popular_queries_set(qex_t* q) {
         const size_t key_len = sprintf(buf, "%zu", n);
         const str_t key = {.data = buf, .len = key_len};
 
-        str_t** maybe_queries = strmap_at(q->_popular_queries, key);
+        vec_t(str_t)* maybe_queries = strmap_at(q->_popular_queries, key);
         if (maybe_queries) {
             vec_append(maybe_queries, it.key);
         } else {
-            str_t* queries = vec_make(sizeof(str_t), 1, 1);
+            vec_t(str_t) queries = vec_make(str_t, 1, 1);
             queries[0] = it.key;
-            q->_popular_queries =
-                strmap_addv(q->_popular_queries, key, queries);
+            strmap_add(&q->_popular_queries, key, queries);
         }
     }
 }
 
-static int popular_queries_sorter(void* vec, size_t a, size_t b, void* ctx) {
-    str_t* v = vec;
+static int popular_queries_sorter(vec_t(void) vec, size_t a, size_t b,
+                                  void* ctx) {
+    vec_t(str_t) v = vec;
     return atoi(v[a].data) > atoi(v[b].data);
 }
 
 static void print_nth_most_popular_queries(qex_t* q, size_t num) {
-    str_t* ns = vec_make(sizeof(str_t), 0, strmap_len(q->_popular_queries));
+    vec_t(str_t) ns = vec_make(str_t, 0, strmap_len(q->_popular_queries));
     for (strmap_iterator_t it = strmap_iterator(q->_popular_queries);
          strmap_next(&it);) {
         vec_append(&ns, it.key);
@@ -292,7 +292,7 @@ static void print_nth_most_popular_queries(qex_t* q, size_t num) {
     vec_sort(ns, popular_queries_sorter, NULL);
     for (int i = 0; i < vec_len(ns); ++i) {
         str_t num_queries = ns[i];
-        str_t** queries = strmap_at(q->_popular_queries, num_queries);
+        vec_t(str_t)* queries = strmap_at(q->_popular_queries, num_queries);
         for (int j = 0; j < vec_len(*queries); ++j) {
             str_t query = (*queries)[j];
             if (num-- == 0) {
@@ -307,8 +307,6 @@ end:
 
 /************************* Entry point ***************************************/
 
-#include "delta/str.h"
-
 int main(int argc, char** argv) {
     /* parse arguments */
     args_t args = parse_options(argc, argv);
@@ -322,7 +320,7 @@ int main(int argc, char** argv) {
     /* index input files */
     qex_t qex;
     qex_init(&qex, args.range);
-    strmap_t buffers = strmap_make(sizeof(char*), vec_len(args.files));
+    strmap_t(char*) buffers = strmap_make(char*, vec_len(args.files));
 
     for (int i = 0; i < vec_len(args.files); ++i) {
         char* file = args.files[i];
@@ -332,8 +330,8 @@ int main(int argc, char** argv) {
         size_t length = ftell(f);
         fseek(f, 0, SEEK_SET);
         char* buf = malloc(sizeof(char) * length + 1);
-        buffers = strmap_addv(buffers,
-                              (str_t){.data = file, .len = strlen(file)}, buf);
+        str_t key = {.data = file, .len = strlen(file)};
+        strmap_add(&buffers, key, buf);
         if (fread(buf, length, 1, f) != 1) {
             printf("failed to read file\n");
             exit(1);

@@ -48,7 +48,7 @@ static void* init_new_bucket(const _map* m, _strmap_bucket* b) {
     return b;
 }
 
-strmap_t strmap_make(size_t value_size, size_t capacity) {
+strmap_t(void) strmap_make_impl(size_t value_size, size_t capacity) {
     _map* m = NULL;
     size_t i = 0;
 
@@ -89,7 +89,7 @@ strmap_t strmap_make(size_t value_size, size_t capacity) {
     return m;
 }
 
-void strmap_del(strmap_t map) {
+void strmap_del(strmap_t(void) map) {
     _map* m = map;
     size_t i = 0;
 
@@ -110,7 +110,7 @@ void strmap_del(strmap_t map) {
     free(m);
 }
 
-size_t strmap_len(const strmap_t map) {
+size_t strmap_len(const strmap_t(void) map) {
     const _map* m = map;
     return m->len;
 }
@@ -158,31 +158,7 @@ static int find_bucket_pos(const _map* m, str_t key,
     return i < b->len;
 }
 
-int strmap_get(const strmap_t map, str_t key, void* v) {
-    const _map* m = map;
-    const void* data = strmap_at(map, key);
-    if (data == NULL) {
-        return 0;
-    }
-    if (v != NULL) {
-        memcpy(v, data, m->value_size);
-    }
-    return 1;
-}
-
-void* strmap_at(const strmap_t map, str_t key) {
-    const _map* m = map;
-    _strmap_bucket* b = NULL;
-    size_t pos = 0;
-    unsigned long h = 0;
-
-    if (!find_bucket_pos(m, key, &h, &b, &pos)) {
-        return NULL;
-    }
-    return bucket_val(m, b, pos);
-}
-
-int strmap_erase(strmap_t map, str_t key) {
+int strmap_erase(strmap_t(void) map, str_t key) {
     _map* m = map;
     _strmap_bucket* b = NULL;
     size_t pos = 0;
@@ -201,6 +177,30 @@ int strmap_erase(strmap_t map, str_t key) {
     --m->len;
 
     return 1;
+}
+
+int strmap_get(const strmap_t(void) map, str_t key, void* v) {
+    const _map* m = map;
+    const void* data = strmap_at(map, key);
+    if (data == NULL) {
+        return 0;
+    }
+    if (v != NULL) {
+        memcpy(v, data, m->value_size);
+    }
+    return 1;
+}
+
+void* strmap_at(const strmap_t(void) map, str_t key) {
+    const _map* m = map;
+    _strmap_bucket* b = NULL;
+    size_t pos = 0;
+    unsigned long h = 0;
+
+    if (!find_bucket_pos(m, key, &h, &b, &pos)) {
+        return NULL;
+    }
+    return bucket_val(m, b, pos);
 }
 
 /*
@@ -230,6 +230,7 @@ static size_t append_new_key(_map* m, str_t key) {
 /*
  * Insert a new key/value pair in the map and return a pointer to the map.
  * NULL is returned in case of error.
+ * TODO: remove and use getp.
  */
 static void* strmap_insert(_map* m, str_t key, const void* val_ptr) {
     _strmap_bucket* b = NULL;
@@ -272,7 +273,7 @@ static void* strmap_insert(_map* m, str_t key, const void* val_ptr) {
  * NULL is returned in case of error.
  */
 static _map* strmap_rehash(_map* m) {
-    _map* n = strmap_make(m->value_size, m->capacity * 2);
+    _map* n = strmap_make_impl(m->value_size, m->capacity * 2);
     strmap_iterator_t it = strmap_iterator(m);
     if (n == NULL) {
         return NULL;
@@ -289,51 +290,50 @@ static _map* strmap_rehash(_map* m) {
     return n;
 }
 
-strmap_t strmap_addp(strmap_t map, str_t key, const void* val_ptr) {
-    _map* m = map;
-    double load_factor = (double)(m->len);
+void* strmap_getp_impl(void* map_ptr, str_t key) {
+    _map** map = map_ptr;
+    _map* m = *map;
 
-    load_factor /= (double)m->nb_buckets;
+    // TODO: check this only if the key isn't present.
+    double load_factor = (double)(m->len) / (double)m->nb_buckets;
     if (load_factor > MAP_MAX_LOAD_FACTOR) {
         if ((m = strmap_rehash(m)) == NULL) {
             return NULL;
         }
+        *map = m;
     }
 
-    return strmap_insert(m, key, val_ptr);
-}
-
-strmap_t strmap_addv(strmap_t map, str_t key, ...) {
-    _map* m = map;
-    int8_t i8 = 0;
-    int16_t i16 = 0;
-    int32_t i32 = 0;
-    int64_t i64 = 0;
-    va_list args;
-
-    va_start(args, key);
-    i64 = va_arg(args, int64_t);
-    va_end(args);
-
-    switch (m->value_size) {
-        case sizeof(int8_t):
-            i8 = (int8_t)i64;
-            return strmap_addp(m, key, &i8);
-        case sizeof(int16_t):
-            i16 = (int16_t)i64;
-            return strmap_addp(m, key, &i16);
-        case sizeof(int32_t):
-            i32 = (int32_t)i64;
-            return strmap_addp(m, key, &i32);
-        case sizeof(int64_t):
-            return strmap_addp(m, key, &i64);
-        default:
-            assert(0 && "unsupported value data size");
+    _strmap_bucket* b = NULL;
+    size_t pos = 0;
+    unsigned long h = 0;
+    if (find_bucket_pos(m, key, &h, &b, &pos)) {
+        return bucket_val(m, b, pos);
     }
-    return NULL;
+
+    pos = b->len;
+    if (pos == MAPB_CAPA) {
+        if ((b->next = malloc(sizeof(_strmap_bucket))) == NULL) {
+            return NULL;
+        }
+        if ((b = init_new_bucket(m, b->next)) == NULL) {
+            return NULL;
+        }
+        pos = 0;
+    }
+
+    const size_t new_key_pos = append_new_key(m, key);
+    if (new_key_pos == SIZE_MAX) {
+        return NULL;
+    }
+    b->hash[pos] = h;
+    b->keys[pos] = (strmap_key_t){.pos = new_key_pos, .len = key.len};
+    ++b->len;
+    ++m->len;
+
+    return bucket_val(m, b, pos);
 }
 
-strmap_iterator_t strmap_iterator(const strmap_t map) {
+strmap_iterator_t strmap_iterator(strmap_t(void) map) {
     const _map* m = map;
     strmap_iterator_t it;
 

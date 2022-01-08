@@ -15,7 +15,7 @@ static int chars_desc_count_sorter(void* vec, size_t a, size_t b, void* ctx);
 int main(int argc, char** argv) {
     // Make a map mapping strings to size_t, and let the capacity be computed
     // automatically.
-    strmap_t char_count_map = strmap_make(sizeof(size_t), 0);
+    strmap_t(size_t) char_count_map = strmap_make(size_t, 0);
 
     for (int i = 1; i < argc; ++i) {
         const char* arg = argv[i];
@@ -26,13 +26,13 @@ int main(int argc, char** argv) {
             strmap_get(char_count_map, key, &n);
 
             // Update the count if the key exists, or insert the pair (key, 1).
-            char_count_map = strmap_addv(char_count_map, key, n + 1);
+            strmap_add(&char_count_map, key, n + 1);
         }
     }
 
     // Make a vector of char to sort the mapped characters by their counts in
     // decreasing order.
-    str_t* chars_vec = vec_make(sizeof(str_t), 0, strmap_len(char_count_map));
+    vec_t(str_t) chars_vec = vec_make(str_t, 0, strmap_len(char_count_map));
 
     // Iterate on each mapped pairs to fill the chars vector.
     for (strmap_iterator_t it = strmap_iterator(char_count_map);
@@ -57,10 +57,11 @@ int main(int argc, char** argv) {
     strmap_del(char_count_map);
 }
 
-static int chars_desc_count_sorter(void* vec, size_t a, size_t b, void* ctx) {
+static int chars_desc_count_sorter(vec_t(void) vec, size_t a, size_t b,
+                                   void* ctx) {
     // Convert the input arguments to their respective types.
-    str_t* chars_vec = vec;
-    strmap_t char_count_map = ctx;
+    vec_t(str_t) chars_vec = vec;
+    strmap_t(size_t) char_count_map = ctx;
 
     // Get the count of char a and b from the map.
     size_t a_count = 0;

@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define vec_t(T) T*
+
 // vec_valid returns true if the vector is valid.
 bool vec_valid(void* v);
 
@@ -19,15 +21,18 @@ bool vec_valid(void* v);
 // A vec is meant to be used as a C array. So a vector of int should be typed
 // int* and created with:
 //      int* v = vec_make(sizeof(int), 0, 10);
-void* vec_make(size_t value_size, size_t len, size_t capacity);
+#define vec_make(T, len, capacity) \
+    (vec_t(T))(vec_make_impl(sizeof(T), (len), (capacity)))
+
+vec_t(void) vec_make_impl(size_t value_size, size_t len, size_t capacity);
 
 // vec_del deletes the vector.
 // The underlying memory is freed.
 // If NULL is given, nothing is deleted and no error occurs.
-void vec_del(void* v);
+void vec_del(vec_t(void) v);
 
 // vec_len returns the number of elements the vector holds.
-size_t vec_len(const void* v);
+size_t vec_len(const vec_t(void) v);
 
 // vec_resize resizes the vector to n and returns the resized vector.
 // The vector is set as invalid in case of error.
@@ -51,18 +56,17 @@ void vec_resize(void* v_ptr, size_t n);
 
 // vec_pop pops the last value from the vector and decreases its size by one.
 // Popping from an empty vector does nothing.
-void vec_pop(void* v);
+void vec_pop(vec_t(void) v);
 
 // vec_clear clears the vector. The internal storage isn't freed.
-void vec_clear(void* v);
+void vec_clear(vec_t(void) v);
 
 // Less function pointer taking a vector, two indices and a user-defined
 // context. The function must return whether vec[a] <= vec[b].
-typedef int (*less_f)(void* /* vec */, size_t /* a */, size_t /* b */,
-                      void* /* ctx */);
+typedef int (*less_f)(vec_t(void), size_t, size_t, void*);
 
 // vec_sort sorts the vector using the provided less function.
 // The less function takes a pointer on a user-defined context data.
-void vec_sort(void* v, less_f less, void* ctx);
+void vec_sort(vec_t(void) v, less_f less, void* ctx);
 
 #endif  // DELTA_VEC_H_

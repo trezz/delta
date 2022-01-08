@@ -16,9 +16,9 @@ typedef struct vec_header_t {
 #define vec_header(v) (((vec_header_t *)v) - 1)
 #define vec_header_const(v) (((const vec_header_t *)v) - 1)
 
-bool vec_valid(void *v) { return v != NULL && vec_header(v)->valid; }
+bool vec_valid(vec_t(void) v) { return v != NULL && vec_header(v)->valid; }
 
-void *vec_make(size_t value_size, size_t len, size_t capacity) {
+vec_t(void) vec_make_impl(size_t value_size, size_t len, size_t capacity) {
     vec_header_t *h = malloc(capacity * value_size + sizeof(vec_header_t));
     if (h == NULL) {
         return NULL;
@@ -43,7 +43,7 @@ void vec_del(void *v) {
     }
 }
 
-size_t vec_len(const void *v) { return vec_header_const(v)->len; }
+size_t vec_len(const vec_t(void) v) { return vec_header_const(v)->len; }
 
 // vec_header_grow_to_fit grows the capacity of the vector to at least n.
 // If an error occurs, the vector is set as invalid.
@@ -89,13 +89,13 @@ void vec_pop(void *v) {
     }
 }
 
-void vec_clear(void *v) {
+void vec_clear(vec_t(void) v) {
     vec_header_t *h = vec_header(v);
     h->len = 0;
 }
 
 /* TODO: implement a quicksort and a stable sort. */
-void vec_sort(void *v, less_f less, void *ctx) {
+void vec_sort(vec_t(void) v, less_f less, void *ctx) {
     const vec_header_t *h = vec_header_const(v);
 
     // Temporary swap buffer that may be dynamically allocated in case the
