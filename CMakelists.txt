@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.6)
 project("delta")
 
-set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Weverything -pedantic -O3 -ansi -std=c89")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Weverything -pedantic -O3")
 
 add_library(delta
     ${CMAKE_SOURCE_DIR}/src/vec.c
@@ -13,6 +13,8 @@ target_include_directories(delta PUBLIC
   $<INSTALL_INTERFACE:include>
 )
 
+set_property(TARGET delta PROPERTY C_STANDARD 11)
+
 install(TARGETS delta DESTINATION lib)
 install(
   FILES
@@ -21,4 +23,4 @@ install(
   DESTINATION
     include/delta)
 
-add_subdirectory(test/qex)
+add_subdirectory(test)

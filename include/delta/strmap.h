@@ -2,6 +2,7 @@
 #define DELTA_STRMAP_H_
 
 #include <stddef.h>
+#include <string.h>
 
 typedef void* strmap_t;
 
@@ -56,14 +57,14 @@ size_t strmap_len(const strmap_t m);
  * Returns 0 if the key wasn't found in the map.
  */
 int strmap_get_withlen(const strmap_t m, const char* key, size_t key_len, void* v);
-#define strmap_get(map, key, v) strmap_get_withlen((map), (key), strlen(key), v);
+#define strmap_get(map, key, v) strmap_get_withlen((map), (key), strlen(key), v)
 
 /*
  * Searches the map for the given key and if found returns a pointer on the associated value.
  * Returns NULL if the key wasn't found in the map.
  */
 void* strmap_at_withlen(const strmap_t m, const char* key, size_t key_len);
-#define strmap_at(map, key) strmap_at_withlen((map), (key), strlen(key));
+#define strmap_at(map, key) strmap_at_withlen((map), (key), strlen(key))
 
 /*
  * Returns whether the map contains the given key of not.

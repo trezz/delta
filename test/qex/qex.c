@@ -5,50 +5,14 @@
 #include "delta/strmap.h"
 #include "delta/vec.h"
 
-static int fast_compare(const char* ptr0, const char* ptr1, size_t len) {
-    int fast = len / sizeof(size_t) + 1;
-    int offset = (fast - 1) * sizeof(size_t);
-    int current_block = 0;
-
-    if (len <= sizeof(size_t)) {
-        fast = 0;
-    }
-
-    size_t* lptr0 = (size_t*)ptr0;
-    size_t* lptr1 = (size_t*)ptr1;
-
-    while (current_block < fast) {
-        if ((lptr0[current_block] ^ lptr1[current_block])) {
-            int pos;
-            for (pos = current_block * sizeof(size_t); pos < len; ++pos) {
-                if ((ptr0[pos] ^ ptr1[pos]) || (ptr0[pos] == 0) || (ptr1[pos] == 0)) {
-                    return (int)((unsigned char)ptr0[pos] - (unsigned char)ptr1[pos]);
-                }
-            }
-        }
-
-        ++current_block;
-    }
-
-    while (len > offset) {
-        if ((ptr0[offset] ^ ptr1[offset])) {
-            return (int)((unsigned char)ptr0[offset] - (unsigned char)ptr1[offset]);
-        }
-        ++offset;
-    }
-
-    return 0;
-}
-
 /** Holds the inputs arguments. */
 typedef struct args {
-    int help;
-    /* Date range. Pointer to the input argument or NULL if no range. */
-    char* range;
+    size_t help;
     /* Number of results to display. Value 0 behave as if -q were given and
      * the total number of queries is displayed. */
-    int num;
-
+    size_t num;
+    /* Date range. Pointer to the input argument or NULL if no range. */
+    char* range;
     /* Input file paths. */
     char** files;
 } args_t;
@@ -117,7 +81,7 @@ static args_t parse_options(int argc, char** argv) {
                 exit(1);
             } else {
                 char* end = NULL;
-                args.num = strtoll(argv[i], &end, 10);
+                args.num = (size_t)strtoll(argv[i], &end, 10);
                 if (end == argv[i]) {
                     fprintf(stderr, "error: integer expected as argument of -n option\n");
                     exit(1);
@@ -150,7 +114,7 @@ typedef struct {
     char* end;
 } range_t;
 
-int toint(const char* s, char** next) {
+static int toint(char* s, char** next) {
     int result = 0;
 
     while (s && (*s == ' ' || *s == '\t')) ++s;
@@ -161,13 +125,13 @@ int toint(const char* s, char** next) {
     }
 
     if (next) {
-        *next = (char*)s;
+        *next = s;
     }
 
     return result;
 }
 
-static void parse_range(range_t* r, const char* range) {
+static void parse_range(range_t* r, char* range) {
     /* fill a table of 6 dates with the string range. This loop accepts wildcards
      * characters (*) */
     int date[6] = {-1, -1, -1, -1, -1, -1};
@@ -215,7 +179,6 @@ typedef struct qex {
 
 static void qex_init(qex_t* q, char* range) {
     strmap_config_t config = strmap_config(sizeof(size_t), 0);
-    config.strncmp_func = &fast_compare;
     q->_queries_in_range = strmap_make_from_config(&config);
     config.value_size = sizeof(void*);
     q->_popular_queries = strmap_make_from_config(&config);
@@ -241,7 +204,7 @@ static int qex_is_equal(const range_t* range, const range_t* user_range) {
            ((user_range->second & range->second) == range->second);
 }
 
-static char* index_tsv_line(qex_t* q, char* line, size_t lineno) {
+static char* index_tsv_line(qex_t* q, char* line) {
     parse_range(&q->_range, line);
     line = q->_range.end;
 
@@ -259,7 +222,7 @@ static char* index_tsv_line(qex_t* q, char* line, size_t lineno) {
     while (*line != '\n' && *line != '\r' && *line != 0) {
         ++line;
     }
-    size_t query_size = line - query;
+    size_t query_size = (size_t)(line - query);
 
     /* remove endline characters and step to next line */
     while (*line == '\n' || *line == '\r') {
@@ -286,7 +249,7 @@ static char* index_tsv_line(qex_t* q, char* line, size_t lineno) {
 
 static void build_most_popular_queries_set(qex_t* q) {
     for (strmap_iterator_t it = strmap_iterator(q->_queries_in_range); strmap_next(&it);) {
-        size_t n = *(int*)it.val_ptr;
+        size_t n = *(size_t*)it.val_ptr;
         char buf[100];
 
         sprintf(buf, "%zu", n);
@@ -313,10 +276,10 @@ static void print_nth_most_popular_queries(qex_t* q, size_t num) {
         ns = vec_appendv(ns, it.key);
     }
     vec_sort(ns, popular_queries_sorter);
-    for (int i = 0; i < vec_len(ns); ++i) {
+    for (size_t i = 0; i < vec_len(ns); ++i) {
         char* num_queries = ns[i];
         char*** queries = strmap_at(q->_popular_queries, num_queries);
-        for (int j = 0; j < vec_len(*queries); ++j) {
+        for (size_t j = 0; j < vec_len(*queries); ++j) {
             char* query = (*queries)[j];
             if (num-- == 0) {
                 goto end;
@@ -347,13 +310,13 @@ int main(int argc, char** argv) {
     qex_init(&qex, args.range);
     strmap_t buffers = strmap_make(sizeof(char*), vec_len(args.files));
 
-    for (int i = 0; i < vec_len(args.files); ++i) {
+    for (size_t i = 0; i < vec_len(args.files); ++i) {
         printf("# OPEN\n");
         char* file = args.files[i];
         /* read whole file content into buffer */
         FILE* f = fopen(file, "r");
         fseek(f, 0, SEEK_END);
-        size_t length = ftell(f);
+        size_t length = (size_t)ftell(f);
         fseek(f, 0, SEEK_SET);
         char* buf = malloc(sizeof(char) * length + 1);
         buffers = strmap_addv(buffers, file, buf);
@@ -366,13 +329,11 @@ int main(int argc, char** argv) {
 
         printf("# INDEX\n");
         /* index the file using Qex object and catch eventual errors */
-        size_t lineno = 1;
-        for (char* line = buf; line; line = index_tsv_line(&qex, line, lineno)) {
+        for (char* line = buf; line; line = index_tsv_line(&qex, line)) {
             if (line == NULL) {
                 fprintf(stderr, "error\n");
                 break;
             }
-            ++lineno;
         }
     }
 
