@@ -4,8 +4,9 @@ project("delta")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Weverything -pedantic -O3")
 
 add_library(delta
-    ${CMAKE_SOURCE_DIR}/src/vec.c
+    ${CMAKE_SOURCE_DIR}/src/hash.c
     ${CMAKE_SOURCE_DIR}/src/strmap.c
+    ${CMAKE_SOURCE_DIR}/src/vec.c
 )
 
 target_include_directories(delta PUBLIC

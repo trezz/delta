@@ -34,7 +34,8 @@ int main(int argc, char** argv) {
     char** chars_vec = vec_make(sizeof(char*), 0, strmap_len(char_count_map));
 
     // Iterate on each mapped pairs to fill the chars vector.
-    for (strmap_iterator_t it = strmap_iterator(char_count_map); strmap_next(&it);) {
+    for (strmap_iterator_t it = strmap_iterator(char_count_map);
+         strmap_next(&it);) {
         chars_vec = vec_appendv(chars_vec, it.key);
     }
 

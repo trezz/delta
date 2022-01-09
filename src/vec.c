@@ -79,8 +79,8 @@ static vec_header *vec_grow_to_fit(void *vec, size_t n) {
         capacity_changed = 1;
     }
     if (capacity_changed) {
-        header = header->realloc_func(header,
-                                      header->capacity * header->value_size + sizeof(vec_header));
+        header = header->realloc_func(
+            header, header->capacity * header->value_size + sizeof(vec_header));
     }
 
     return header;
@@ -212,7 +212,9 @@ static int less_no_context(void *vec, size_t a, size_t b, void *ctx) {
     return less(vec, a, b);
 }
 
-void vec_sort(void *vec, less_f less) { vec_sort_ctx(vec, less_no_context, (void *)less); }
+void vec_sort(void *vec, less_f less) {
+    vec_sort_ctx(vec, less_no_context, (void *)less);
+}
 
 /* TODO: implement a quicksort and a stable sort. */
 void vec_sort_ctx(void *vec, less_with_ctx_f less, void *ctx) {

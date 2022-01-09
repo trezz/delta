@@ -18,7 +18,9 @@ typedef struct args {
 } args_t;
 
 /** Print usage */
-static void usage() { printf("Usage: qex [-h] [-r RANGE] [-n NUM] FILE [FILE ...]\n"); }
+static void usage() {
+    printf("Usage: qex [-h] [-r RANGE] [-n NUM] FILE [FILE ...]\n");
+}
 
 /** Print help */
 static void help() {
@@ -27,7 +29,8 @@ static void help() {
         "qex is a command line tool which takes as input TSV files containing\n"
         "any number of lines that follow this format\n"
         "`<YEAR>-<MONTH>-<DAY> <HOUR>:<MIN>:<SEC>\\t<QUERY>\\n` and options\n"
-        "which parameters the outputs to extract from the input queries files.\n"
+        "which parameters the outputs to extract from the input queries "
+        "files.\n"
         "Depending on the input options, qex is able to output The number of\n"
         "distinct queries done during a specific time range. Follows some\n"
         "example use-cases.\n\n"
@@ -68,7 +71,9 @@ static args_t parse_options(int argc, char** argv) {
             /* parse range option with a required argument */
             ++i;
             if (i == argc) {
-                fprintf(stderr, "error: -r option requires an argument. Use qex -h for details\n");
+                fprintf(stderr,
+                        "error: -r option requires an argument. Use qex -h for "
+                        "details\n");
                 exit(1);
             } else {
                 args.range = argv[i];
@@ -77,13 +82,17 @@ static args_t parse_options(int argc, char** argv) {
             /* parse num option with a required argument */
             ++i;
             if (i == argc) {
-                fprintf(stderr, "error: -n option requires an argument. Use qex -h for details\n");
+                fprintf(stderr,
+                        "error: -n option requires an argument. Use qex -h for "
+                        "details\n");
                 exit(1);
             } else {
                 char* end = NULL;
                 args.num = (size_t)strtoll(argv[i], &end, 10);
                 if (end == argv[i]) {
-                    fprintf(stderr, "error: integer expected as argument of -n option\n");
+                    fprintf(
+                        stderr,
+                        "error: integer expected as argument of -n option\n");
                     exit(1);
                 }
             }
@@ -132,8 +141,8 @@ static int toint(char* s, char** next) {
 }
 
 static void parse_range(range_t* r, char* range) {
-    /* fill a table of 6 dates with the string range. This loop accepts wildcards
-     * characters (*) */
+    /* fill a table of 6 dates with the string range. This loop accepts
+     * wildcards characters (*) */
     int date[6] = {-1, -1, -1, -1, -1, -1};
     char* next_token = NULL;
 
@@ -152,7 +161,8 @@ static void parse_range(range_t* r, char* range) {
         } else if (*next_token == 0) {
             break;
         } else {
-            /* eventually step over separator character such as '-', ' ', '\t' or ':' */
+            /* eventually step over separator character such as '-', ' ', '\t'
+             * or ':' */
             range = next_token + 1;
         }
     }
@@ -188,7 +198,8 @@ static void qex_init(qex_t* q, char* range) {
 static void qex_del(qex_t* q) {
     strmap_del(q->_queries_in_range);
 
-    for (strmap_iterator_t it = strmap_iterator(q->_popular_queries); strmap_next(&it);) {
+    for (strmap_iterator_t it = strmap_iterator(q->_popular_queries);
+         strmap_next(&it);) {
         char*** queries_ptr = it.val_ptr;
         vec_del(*queries_ptr);
     }
@@ -235,7 +246,8 @@ static char* index_tsv_line(qex_t* q, char* line) {
     if (qex_is_equal(&q->_range, &q->_user_range)) {
         char* key = query;
         key[query_size] = 0;
-        size_t* maybe_n = strmap_at_withlen(q->_queries_in_range, key, query_size);
+        size_t* maybe_n =
+            strmap_at_withlen(q->_queries_in_range, key, query_size);
         if (maybe_n) {
             ++(*maybe_n);
         } else {
@@ -248,7 +260,8 @@ static char* index_tsv_line(qex_t* q, char* line) {
 }
 
 static void build_most_popular_queries_set(qex_t* q) {
-    for (strmap_iterator_t it = strmap_iterator(q->_queries_in_range); strmap_next(&it);) {
+    for (strmap_iterator_t it = strmap_iterator(q->_queries_in_range);
+         strmap_next(&it);) {
         size_t n = *(size_t*)it.val_ptr;
         char buf[100];
 
@@ -260,7 +273,8 @@ static void build_most_popular_queries_set(qex_t* q) {
         } else {
             const char** queries = vec_make(sizeof(char*), 1, 10);
             queries[0] = it.key;
-            q->_popular_queries = strmap_addv(q->_popular_queries, buf, queries);
+            q->_popular_queries =
+                strmap_addv(q->_popular_queries, buf, queries);
         }
     }
 }
@@ -272,7 +286,8 @@ static int popular_queries_sorter(void* vec, size_t a, size_t b) {
 
 static void print_nth_most_popular_queries(qex_t* q, size_t num) {
     char** ns = vec_make(sizeof(char*), 0, strmap_len(q->_popular_queries));
-    for (strmap_iterator_t it = strmap_iterator(q->_popular_queries); strmap_next(&it);) {
+    for (strmap_iterator_t it = strmap_iterator(q->_popular_queries);
+         strmap_next(&it);) {
         ns = vec_appendv(ns, it.key);
     }
     vec_sort(ns, popular_queries_sorter);

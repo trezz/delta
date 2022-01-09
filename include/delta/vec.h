@@ -36,9 +36,8 @@ void* vec_make_from_config(const vec_config_t* config);
  * The content of the allocated space is zero-initialized up to len.
  * NULL is returned in case of error.
  *
- * A vec is meant to be used as a C array. So a vec of int should be typed int* and created
- * with:
- *      int* int_vec = vec_make(sizeof(int), 0, 10);
+ * A vec is meant to be used as a C array. So a vec of int should be typed int*
+ * and created with: int* int_vec = vec_make(sizeof(int), 0, 10);
  */
 void* vec_make(size_t value_size, size_t len, size_t capacity);
 
@@ -71,10 +70,11 @@ void* vec_appendnv(void* vec, size_t n, ...);
 #define vec_appendv(vec, v) vec_appendnv(vec, 1, v)
 
 /*
- * Stores exactly `n` structured values at the end of the vec and returns the new vec.
- * NULL is returned in case of error.
+ * Stores exactly `n` structured values at the end of the vec and returns the
+ * new vec. NULL is returned in case of error.
  *
- * Values to store must be passed by pointers. Their content are copied into the vec.
+ * Values to store must be passed by pointers. Their content are copied into the
+ * vec.
  *
  * The vec is reallocated if it has not enough capacity to hold the new value.
  *
@@ -103,9 +103,9 @@ void* vec_back(void* vec);
 /*
  * Returns a sub vec from the vec with the values in the range [start; end[
  *
- * If a negative number is passed as end, the range end position is computed starting
- * from the end of the vec. -1 is equivalent to vec_len(vec), -2 is equivalent
- * to vec_len(vec)-1, etc...
+ * If a negative number is passed as end, the range end position is computed
+ * starting from the end of the vec. -1 is equivalent to vec_len(vec), -2 is
+ * equivalent to vec_len(vec)-1, etc...
  */
 void* vec_sub(const void* vec, size_t start, int end);
 
@@ -116,10 +116,11 @@ void* vec_sub(const void* vec, size_t start, int end);
 typedef int (*less_f)(void* /* vec */, size_t /* a */, size_t /* b */);
 
 /*
- * Less function pointer taking a vector, two indices and a user-defined context.
- * The function must return whether vec[a] <= vec[b].
+ * Less function pointer taking a vector, two indices and a user-defined
+ * context. The function must return whether vec[a] <= vec[b].
  */
-typedef int (*less_with_ctx_f)(void* /* vec */, size_t /* a */, size_t /* b */, void* /* ctx */);
+typedef int (*less_with_ctx_f)(void* /* vec */, size_t /* a */, size_t /* b */,
+                               void* /* ctx */);
 
 /*
  * Sorts the vec using the provided less function.
