@@ -7,7 +7,7 @@ static char key[2] = {0, 0};
 
 static int chars_desc_count_sorter(void* ctx, void* vec, size_t a, size_t b) {
     // Convert the input arguments to their respective types.
-    char** chars_vec = vec;
+    vec_t(char*) chars_vec = vec;
     strmap_t char_count_map = ctx;
 
     // Get the count of char a and b from the map.
@@ -24,7 +24,7 @@ static int chars_desc_count_sorter(void* ctx, void* vec, size_t a, size_t b) {
  * This program counts each distinct character given as input, and prints
  * their count sorted in decreasing order.
  */
-int main(int argc, char** argv) {
+int main(int argc, const char** argv) {
     // Make a map mapping strings to size_t, and let the capacity be computed
     // automatically.
     strmap_t char_count_map = strmap_make(sizeof(size_t), 0);
@@ -44,7 +44,8 @@ int main(int argc, char** argv) {
 
     // Make a vector of char to sort the mapped characters by their counts in
     // decreasing order.
-    char** chars_vec = vec_make(char*, 0, strmap_len(char_count_map));
+    vec_t(const char*) chars_vec =
+        vec_make(const char*, 0, strmap_len(char_count_map));
 
     // Iterate on each mapped pairs to fill the chars vector.
     for (strmap_iterator_t it = strmap_iterator(char_count_map);

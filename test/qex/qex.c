@@ -14,7 +14,7 @@ typedef struct args {
     /* Date range. Pointer to the input argument or NULL if no range. */
     char* range;
     /* Input file paths. */
-    char** files;
+    vec_t(char*) files;
 } args_t;
 
 /** Print usage */
@@ -200,7 +200,7 @@ static void qex_del(qex_t* q) {
 
     for (strmap_iterator_t it = strmap_iterator(q->_popular_queries);
          strmap_next(&it);) {
-        char*** queries_ptr = it.val_ptr;
+        vec_t(char*)* queries_ptr = it.val_ptr;
         vec_del(*queries_ptr);
     }
     strmap_del(q->_popular_queries);
@@ -267,11 +267,11 @@ static void build_most_popular_queries_set(qex_t* q) {
 
         sprintf(buf, "%zu", n);
 
-        char*** maybe_queries = strmap_at(q->_popular_queries, buf);
+        vec_t(char*)* maybe_queries = strmap_at(q->_popular_queries, buf);
         if (maybe_queries) {
             vec_append(maybe_queries, it.key);
         } else {
-            const char** queries = vec_make(const char*, 1, 10);
+            vec_t(const char*) queries = vec_make(const char*, 1, 10);
             queries[0] = it.key;
             q->_popular_queries =
                 strmap_addv(q->_popular_queries, buf, queries);
@@ -281,12 +281,12 @@ static void build_most_popular_queries_set(qex_t* q) {
 
 static int popular_queries_sorter(void* ctx, void* vec, size_t a, size_t b) {
     (void)ctx;
-    char** v = vec;
+    vec_t(char*) v = vec;
     return atoi(v[a]) > atoi(v[b]);
 }
 
 static void print_nth_most_popular_queries(qex_t* q, size_t num) {
-    char** ns = vec_make(char*, 0, strmap_len(q->_popular_queries));
+    vec_t(char*) ns = vec_make(char*, 0, strmap_len(q->_popular_queries));
     for (strmap_iterator_t it = strmap_iterator(q->_popular_queries);
          strmap_next(&it);) {
         vec_append(&ns, it.key);
@@ -294,7 +294,7 @@ static void print_nth_most_popular_queries(qex_t* q, size_t num) {
     vec_sort(NULL, ns, popular_queries_sorter);
     for (size_t i = 0; i < vec_len(ns); ++i) {
         char* num_queries = ns[i];
-        char*** queries = strmap_at(q->_popular_queries, num_queries);
+        vec_t(char*)* queries = strmap_at(q->_popular_queries, num_queries);
         for (size_t j = 0; j < vec_len(*queries); ++j) {
             char* query = (*queries)[j];
             if (num-- == 0) {
