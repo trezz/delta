@@ -47,11 +47,11 @@ size_t vec_len(vec_t(const void) vec);
 // validity status of the returned vector.
 void vec_resize(void* vec_ptr, size_t len);
 
-// vec_clone returns a copy of the given vector.
+// vec_copy returns a copy of the given vector.
 //
 // If an error occurs, the returned vector is set as invalid. Use vec_valid to
 // check the validity status of the returned vector.
-vec_t(void) vec_clone(vec_t(const void) vec);
+vec_t(void) vec_copy(vec_t(const void) vec);
 
 // vec_append appends the given literal value to the vector pointed to by
 // vec_ptr, increasing the vector's length by one.

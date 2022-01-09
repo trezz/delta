@@ -116,7 +116,7 @@ void vec_resize(void *vec_ptr_, size_t len) {
     memset(*vec_ptr, 0, (len - prev_len) * header->value_size);
 }
 
-void *vec_clone(const void *vec) {
+void *vec_copy(const void *vec) {
     const vec_header_t *header = get_vec_header_const(vec);
 
     vec_t(void) new_vec = vec_make_alloc_impl(

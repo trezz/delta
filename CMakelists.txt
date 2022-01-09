@@ -20,8 +20,10 @@ set_property(TARGET delta PROPERTY C_STANDARD 11)
 install(TARGETS delta DESTINATION lib)
 install(
   FILES
-    include/delta/vec.h
+    include/delta/allocator.h
+    include/delta/hash.h
     include/delta/strmap.h
+    include/delta/vec.h
   DESTINATION
     include/delta)
 
