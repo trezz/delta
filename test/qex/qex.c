@@ -108,7 +108,7 @@ static args_t parse_options(int argc, char** argv) {
                 if (args.files == NULL) {
                     args.files = vec_make(char*, 0, 0);
                 }
-                args.files = vec_append(args.files, argv[i]);
+                vec_append(&args.files, argv[i]);
             }
         }
     }
@@ -269,7 +269,7 @@ static void build_most_popular_queries_set(qex_t* q) {
 
         char*** maybe_queries = strmap_at(q->_popular_queries, buf);
         if (maybe_queries) {
-            *maybe_queries = vec_append(*maybe_queries, it.key);
+            vec_append(maybe_queries, it.key);
         } else {
             const char** queries = vec_make(const char*, 1, 10);
             queries[0] = it.key;
@@ -289,7 +289,7 @@ static void print_nth_most_popular_queries(qex_t* q, size_t num) {
     char** ns = vec_make(char*, 0, strmap_len(q->_popular_queries));
     for (strmap_iterator_t it = strmap_iterator(q->_popular_queries);
          strmap_next(&it);) {
-        ns = vec_append(ns, it.key);
+        vec_append(&ns, it.key);
     }
     vec_sort(NULL, ns, popular_queries_sorter);
     for (size_t i = 0; i < vec_len(ns); ++i) {

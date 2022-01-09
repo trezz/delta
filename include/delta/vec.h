@@ -50,9 +50,9 @@ size_t vec_len(const void* vec);
  * The input vec may be invalidated. Do not attempt to use it after calling this
  * function.
  */
-void* vec_appendn(void* vec, size_t n, ...);
+void vec_appendn(void* vec_ptr, size_t n, ...);
 
-#define vec_append(vec, v) vec_appendn((vec), 1, (v))
+#define vec_append(vec_ptr, v) vec_appendn((vec_ptr), 1, (v))
 
 /*
  * Stores exactly `n` structured values at the end of the vec and returns the
@@ -66,9 +66,9 @@ void* vec_appendn(void* vec, size_t n, ...);
  * The input vec may be invalidated. Do not attempt to use it after calling this
  * function.
  */
-void* vec_storen(void* vec, size_t n, ...);
+void vec_storen(void* vec_ptr, size_t n, ...);
 
-#define vec_store(vec, ptr) vec_storen((vec), 1, (ptr))
+#define vec_store(vec_ptr, ptr) vec_storen((vec_ptr), 1, (ptr))
 
 /*
  * Pops the last vec value and decreases the vec size by one.

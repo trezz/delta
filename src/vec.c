@@ -94,8 +94,9 @@ static void vec_grow_capacity(vec_header **header_ptr, size_t n) {
     }
 }
 
-void *vec_appendn(void *vec, size_t n, ...) {
-    vec_header *header = get_vec_header(vec);
+void vec_appendn(void *vec_ptr_, size_t n, ...) {
+    void **vec_ptr = vec_ptr_;
+    vec_header *header = get_vec_header(*vec_ptr);
 
     int8_t i8 = 0;
     int16_t i16 = 0;
@@ -107,7 +108,7 @@ void *vec_appendn(void *vec, size_t n, ...) {
 
     vec_grow_capacity(&header, n);
     if (!header->valid) {
-        return header + 1;
+        return;
     }
 
     char *data = (void *)(header + 1);
@@ -140,11 +141,12 @@ void *vec_appendn(void *vec, size_t n, ...) {
     va_end(args);
 
     header->len += n;
-    return header + 1;
+    *vec_ptr = header + 1;
 }
 
-void *vec_storen(void *vec, size_t n, ...) {
-    vec_header *header = get_vec_header(vec);
+void vec_storen(void *vec_ptr_, size_t n, ...) {
+    void **vec_ptr = vec_ptr_;
+    vec_header *header = get_vec_header(*vec_ptr);
 
     void *arg = NULL;
     va_list args;
@@ -153,7 +155,7 @@ void *vec_storen(void *vec, size_t n, ...) {
 
     vec_grow_capacity(&header, n);
     if (!header->valid) {
-        return header + 1;
+        return;
     }
 
     char *data = (void *)(header + 1);
@@ -168,7 +170,7 @@ void *vec_storen(void *vec, size_t n, ...) {
     va_end(args);
 
     header->len += n;
-    return header + 1;
+    *vec_ptr = header + 1;
 }
 
 void vec_pop(void *vec) {
