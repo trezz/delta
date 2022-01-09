@@ -142,4 +142,4 @@ strmap_iterator_t strmap_iterator(const strmap_t map);
  */
 int strmap_next(strmap_iterator_t* it);
 
-#endif /* DELTA_STRMAP_H_ */
+#endif  // DELTA_STRMAP_H_

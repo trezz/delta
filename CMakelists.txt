@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.6)
 project("delta")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Weverything -pedantic -O3")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Weverything -pedantic -O3")
 
 add_library(delta
+    ${CMAKE_SOURCE_DIR}/src/allocator.c
     ${CMAKE_SOURCE_DIR}/src/hash.c
     ${CMAKE_SOURCE_DIR}/src/strmap.c
     ${CMAKE_SOURCE_DIR}/src/vec.c

@@ -5,7 +5,20 @@
 
 static char key[2] = {0, 0};
 
-static int chars_desc_count_sorter(void* vec, size_t a, size_t b, void* ctx);
+static int chars_desc_count_sorter(void* ctx, void* vec, size_t a, size_t b) {
+    // Convert the input arguments to their respective types.
+    char** chars_vec = vec;
+    strmap_t char_count_map = ctx;
+
+    // Get the count of char a and b from the map.
+    size_t a_count = 0;
+    size_t b_count = 0;
+    strmap_get(char_count_map, chars_vec[a], &a_count);
+    strmap_get(char_count_map, chars_vec[b], &b_count);
+
+    // Sort in decreasing order.
+    return a_count >= b_count;
+}
 
 /*
  * This program counts each distinct character given as input, and prints
@@ -31,7 +44,7 @@ int main(int argc, char** argv) {
 
     // Make a vector of char to sort the mapped characters by their counts in
     // decreasing order.
-    char** chars_vec = vec_make(sizeof(char*), 0, strmap_len(char_count_map));
+    char** chars_vec = vec_make(char*, 0, strmap_len(char_count_map));
 
     // Iterate on each mapped pairs to fill the chars vector.
     for (strmap_iterator_t it = strmap_iterator(char_count_map);
@@ -41,7 +54,7 @@ int main(int argc, char** argv) {
 
     // Sort the chars vector in decreasing order.
     // Use the map as context for sorting to access the characters count.
-    vec_sort_ctx(chars_vec, chars_desc_count_sorter, char_count_map);
+    vec_sort(char_count_map, chars_vec, chars_desc_count_sorter);
 
     // Print.
     for (size_t i = 0; i < vec_len(chars_vec); ++i) {
@@ -54,19 +67,4 @@ int main(int argc, char** argv) {
     // Delete the created containers.
     vec_del(chars_vec);
     strmap_del(char_count_map);
-}
-
-static int chars_desc_count_sorter(void* vec, size_t a, size_t b, void* ctx) {
-    // Convert the input arguments to their respective types.
-    char** chars_vec = vec;
-    strmap_t char_count_map = ctx;
-
-    // Get the count of char a and b from the map.
-    size_t a_count = 0;
-    size_t b_count = 0;
-    strmap_get(char_count_map, chars_vec[a], &a_count);
-    strmap_get(char_count_map, chars_vec[b], &b_count);
-
-    // Sort in decreasing order.
-    return a_count >= b_count;
 }

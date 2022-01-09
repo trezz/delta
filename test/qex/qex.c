@@ -106,7 +106,7 @@ static args_t parse_options(int argc, char** argv) {
                 }
                 fclose(f);
                 if (args.files == NULL) {
-                    args.files = vec_make(sizeof(char*), 0, 0);
+                    args.files = vec_make(char*, 0, 0);
                 }
                 args.files = vec_appendv(args.files, argv[i]);
             }
@@ -271,7 +271,7 @@ static void build_most_popular_queries_set(qex_t* q) {
         if (maybe_queries) {
             *maybe_queries = vec_appendv(*maybe_queries, it.key);
         } else {
-            const char** queries = vec_make(sizeof(char*), 1, 10);
+            const char** queries = vec_make(const char*, 1, 10);
             queries[0] = it.key;
             q->_popular_queries =
                 strmap_addv(q->_popular_queries, buf, queries);
@@ -279,18 +279,19 @@ static void build_most_popular_queries_set(qex_t* q) {
     }
 }
 
-static int popular_queries_sorter(void* vec, size_t a, size_t b) {
+static int popular_queries_sorter(void* ctx, void* vec, size_t a, size_t b) {
+    (void)ctx;
     char** v = vec;
     return atoi(v[a]) > atoi(v[b]);
 }
 
 static void print_nth_most_popular_queries(qex_t* q, size_t num) {
-    char** ns = vec_make(sizeof(char*), 0, strmap_len(q->_popular_queries));
+    char** ns = vec_make(char*, 0, strmap_len(q->_popular_queries));
     for (strmap_iterator_t it = strmap_iterator(q->_popular_queries);
          strmap_next(&it);) {
         ns = vec_appendv(ns, it.key);
     }
-    vec_sort(ns, popular_queries_sorter);
+    vec_sort(NULL, ns, popular_queries_sorter);
     for (size_t i = 0; i < vec_len(ns); ++i) {
         char* num_queries = ns[i];
         char*** queries = strmap_at(q->_popular_queries, num_queries);
