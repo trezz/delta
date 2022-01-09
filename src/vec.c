@@ -94,7 +94,7 @@ static void vec_grow_capacity(vec_header **header_ptr, size_t n) {
     }
 }
 
-void *vec_appendnv(void *vec, size_t n, ...) {
+void *vec_appendn(void *vec, size_t n, ...) {
     vec_header *header = get_vec_header(vec);
 
     int8_t i8 = 0;
@@ -143,7 +143,7 @@ void *vec_appendnv(void *vec, size_t n, ...) {
     return header + 1;
 }
 
-void *vec_appendnp(void *vec, size_t n, ...) {
+void *vec_storen(void *vec, size_t n, ...) {
     vec_header *header = get_vec_header(vec);
 
     void *arg = NULL;

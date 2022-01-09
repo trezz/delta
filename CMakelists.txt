@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.6)
 project("delta")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Weverything -pedantic -O3")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Weverything -pedantic -O3 -Wno-padded")
 
 add_library(delta
     ${CMAKE_SOURCE_DIR}/src/allocator.c
