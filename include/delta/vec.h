@@ -68,6 +68,10 @@ vec_t(void) vec_copy(vec_t(const void) const vec);
 //
 // If an error occurs, the vector is set as invalid. Use vec_valid to check its
 // validity status.
+//
+// NOTE: This macro function uses __typeof__. If you compiler doesn't support
+// it, appending to a vector can be done by resizing the vector first (using
+// vec_resize), then accessing the values using the [] operator:
 #define vec_append(vec_ptr, value)                                             \
     do {                                                                       \
         __typeof__(vec_ptr) DELTA_UNIQUE_SYMBOL(p) = (vec_ptr);                \
@@ -104,11 +108,15 @@ void vec_clear(vec_t(void) vec);
 //      - (a, b):   Two indices in the range [0; vec_len(vec)[
 typedef int (*less_f)(void*, vec_t(void), size_t, size_t);
 
-// vec_sort sorts the given vector using the given less function (see less_f).
+// vec_sort sorts the given vector using the given less function.
+//
 // An optional pointer on a user-defined sort context can be passed. It may be
 // NULL.
 //
 // Sorting a NULL vector is a noop.
+//
+// NOTE: this macro function uses __typeof__. If you compiler doesn't support
+// it, use vec_sort_impl instead.
 #define vec_sort(ctx, vec, less)                                        \
     do {                                                                \
         int (*DELTA_UNIQUE_SYMBOL(vec_sorter))(                         \
@@ -121,9 +129,9 @@ typedef int (*less_f)(void*, vec_t(void), size_t, size_t);
 // Private implementations.
 //
 
-void vec_sort_impl(void* ctx, vec_t(void) vec, less_f less);
-
 vec_t(void) vec_make_alloc_impl(size_t value_size, size_t len, size_t capacity,
                                 const allocator_t* allocator);
+
+void vec_sort_impl(void* ctx, vec_t(void) vec, less_f less);
 
 #endif  // DELTA_VEC_H_
