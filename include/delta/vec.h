@@ -26,13 +26,11 @@
 // using the provided allocator instead of the default one.
 // The elements in the range [0, len[ are zero-initialized.
 //
-// NULL is returned in case of error (do not use vec_valid to check the return
-// of vec_make_alloc).
+// NULL is returned in case of error.
 #define vec_make_alloc(T, len, capacity, allocator) \
     ((T*)vec_make_alloc_impl(sizeof(T), (len), (capacity), (allocator)))
 
 // vec_valid returns whether the given vector is valid or not.
-// A NULL vector is considered valid.
 bool vec_valid(vec_t(const void) const vec);
 
 // vec_del deletes the given vector. The underlying memory is deallocated.
@@ -40,14 +38,11 @@ bool vec_valid(vec_t(const void) const vec);
 void vec_del(vec_t(void) vec);
 
 // vec_len returns the number of elements the given vector holds.
-// The length of a NULL vector is 0.
 size_t vec_len(vec_t(const void) const vec);
 
 // vec_resize resizes the vector pointed to by vec_ptr so that it can store at
 // least len elements.
 // New values are zero initialized.
-//
-// Resizing a NULL vector is undefined behavior. Use vec_make instead.
 //
 // If an error occurs, the vector is set as invalid. Use vec_valid to check the
 // validity status of the returned vector.
@@ -55,16 +50,12 @@ size_t vec_len(vec_t(const void) const vec);
 
 // vec_copy returns a copy of the given vector.
 //
-// Copying a NULL vector returns a NULL vector.
-//
 // If an error occurs, the returned vector is set as invalid. Use vec_valid to
 // check the validity status of the returned vector.
 vec_t(void) vec_copy(vec_t(const void) const vec);
 
 // vec_append appends the given value to the vector pointed to by vec_ptr,
 // increasing the vector's length by one.
-//
-// Appending to a NULL vector is undefined behavior.
 //
 // This function asserts that the vector is valid before appending the value.
 //
@@ -81,18 +72,6 @@ vec_t(void) vec_copy(vec_t(const void) const vec);
         (*DELTA_UNIQUE_SYM(p))[DELTA_UNIQUE_SYM(vlen)] = (value);            \
     } while (0)
 
-// vec_pop removes the last element of the given vector, decreasing its length
-// by one.
-//
-// Popping from a NULL or an empty vector is a noop.
-void vec_pop(vec_t(void) vec);
-
-// vec_clear removes all elements of the vector, setting its length to 0.
-// The internal storage isn't deallocated.
-//
-// Clearing a NULL vector is a noop.
-void vec_clear(vec_t(void) vec);
-
 // less_f is a pointer on a function returning whether vec[a] <= vec[b] and
 // taking as input arguments (in that order):
 //      - ctx:      A pointer on user-defined context (may be NULL)
@@ -104,8 +83,6 @@ typedef int (*less_f)(void*, vec_t(void), size_t, size_t);
 //
 // An optional pointer on a user-defined sort context can be passed. It may be
 // NULL.
-//
-// Sorting a NULL vector is a noop.
 //
 // NOTE: this macro function uses __typeof__. If you compiler doesn't support
 // it, use vec_sort_impl instead.

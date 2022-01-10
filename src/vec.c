@@ -52,7 +52,7 @@ void *vec_make_alloc_impl(size_t value_size, size_t len, size_t capacity,
 
 bool vec_valid(const void *const vec) {
     if (vec == NULL) {
-        return true;
+        return false;
     }
     const vec_header_t *header = get_vec_header_const(vec);
     return header->valid;
@@ -67,9 +67,6 @@ void vec_del(void *vec) {
 }
 
 size_t vec_len(const void *const vec) {
-    if (vec == NULL) {
-        return 0;
-    }
     const vec_header_t *header = get_vec_header_const(vec);
     return header->len;
 }
@@ -128,10 +125,6 @@ void vec_resize_impl(void *vec_ptr_, size_t len, bool zero_init) {
 }
 
 void *vec_copy(const void *const vec) {
-    if (vec == NULL) {
-        return NULL;
-    }
-
     const vec_header_t *header = get_vec_header_const(vec);
 
     vec_t(void) new_vec = vec_make_alloc_impl(
@@ -149,32 +142,8 @@ void *vec_copy(const void *const vec) {
     return new_data;
 }
 
-void vec_pop(void *vec) {
-    if (vec == NULL) {
-        return;
-    }
-
-    vec_header_t *header = get_vec_header(vec);
-    if (header->len == 0) {
-        return;
-    }
-    --header->len;
-}
-
-void vec_clear(void *vec) {
-    if (vec == NULL) {
-        return;
-    }
-    vec_header_t *header = get_vec_header(vec);
-    header->len = 0;
-}
-
 /* TODO: implement a quicksort and a stable sort. */
 void vec_sort_impl(void *ctx, void *vec, less_f less) {
-    if (vec == NULL) {
-        return;
-    }
-
     const size_t len = vec_len(vec);
     vec_header_t *header = get_vec_header(vec);
     char *data = vec;
