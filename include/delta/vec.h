@@ -50,7 +50,7 @@ size_t vec_len(vec_t(const void) const vec);
 //
 // If an error occurs, the vector is set as invalid. Use vec_valid to check the
 // validity status of the returned vector.
-#define vec_resize(v_ptr, len) vec_resize_impl((v_ptr), len, true)
+#define vec_resize(v_ptr, len) vec_resize_impl((v_ptr), (len), true)
 
 // vec_copy returns a copy of the given vector.
 //

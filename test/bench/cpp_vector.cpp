@@ -5,7 +5,6 @@
 
 static void append_cpp_vector(size_t n) {
     std::vector<size_t> v;
-    v.reserve(n);
     for (size_t i = 0; i < n; ++i) {
         v.push_back(i);
     }
