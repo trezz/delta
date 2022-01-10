@@ -50,7 +50,7 @@ size_t vec_len(vec_t(const void) const vec);
 //
 // If an error occurs, the vector is set as invalid. Use vec_valid to check the
 // validity status of the returned vector.
-void vec_resize(void* vec_ptr, size_t len);
+#define vec_resize(v_ptr, len) vec_resize_impl((v_ptr), len, true)
 
 // vec_copy returns a copy of the given vector.
 //
@@ -71,22 +71,23 @@ vec_t(void) vec_copy(vec_t(const void) const vec);
 //
 // NOTE: This macro function uses __typeof__. If you compiler doesn't support
 // it, appending to a vector can be done by resizing the vector first (using
-// vec_resize), then accessing the values using the [] operator:
-#define vec_append(vec_ptr, value)                                             \
-    do {                                                                       \
-        __typeof__(vec_ptr) DELTA_UNIQUE_SYMBOL(p) = (vec_ptr);                \
-        const size_t DELTA_UNIQUE_SYMBOL(vlen) =                               \
-            vec_len(*DELTA_UNIQUE_SYMBOL(p));                                  \
-        if (*DELTA_UNIQUE_SYMBOL(p) == NULL) {                                 \
-            *DELTA_UNIQUE_SYMBOL(p) =                                          \
-                vec_make(__typeof__(**DELTA_UNIQUE_SYMBOL(p)), 1, 1);          \
-        } else {                                                               \
-            vec_resize(DELTA_UNIQUE_SYMBOL(p), DELTA_UNIQUE_SYMBOL(vlen) + 1); \
-        }                                                                      \
-        if (!vec_valid(*DELTA_UNIQUE_SYMBOL(p))) {                             \
-            break;                                                             \
-        }                                                                      \
-        (*DELTA_UNIQUE_SYMBOL(p))[DELTA_UNIQUE_SYMBOL(vlen)] = (value);        \
+// vec_resize), then accessing the values using the [] operator.
+#define vec_append(vec_ptr, value)                                      \
+    do {                                                                \
+        __typeof__(vec_ptr) DELTA_UNIQUE_SYMBOL(p) = (vec_ptr);         \
+        const size_t DELTA_UNIQUE_SYMBOL(vlen) =                        \
+            vec_len(*DELTA_UNIQUE_SYMBOL(p));                           \
+        if (*DELTA_UNIQUE_SYMBOL(p) == NULL) {                          \
+            *DELTA_UNIQUE_SYMBOL(p) =                                   \
+                vec_make(__typeof__(**DELTA_UNIQUE_SYMBOL(p)), 1, 1);   \
+        } else {                                                        \
+            vec_resize_impl(DELTA_UNIQUE_SYMBOL(p),                     \
+                            DELTA_UNIQUE_SYMBOL(vlen) + 1, false);      \
+        }                                                               \
+        if (!vec_valid(*DELTA_UNIQUE_SYMBOL(p))) {                      \
+            break;                                                      \
+        }                                                               \
+        (*DELTA_UNIQUE_SYMBOL(p))[DELTA_UNIQUE_SYMBOL(vlen)] = (value); \
     } while (0)
 
 // vec_pop removes the last element of the given vector, decreasing its length
@@ -131,6 +132,8 @@ typedef int (*less_f)(void*, vec_t(void), size_t, size_t);
 
 vec_t(void) vec_make_alloc_impl(size_t value_size, size_t len, size_t capacity,
                                 const allocator_t* allocator);
+
+void vec_resize_impl(void* vec_ptr, size_t len, bool zero_init);
 
 void vec_sort_impl(void* ctx, vec_t(void) vec, less_f less);
 

@@ -100,12 +100,13 @@ static void vec_grow_capacity(vec_header_t **header_ptr, size_t n) {
     }
 }
 
-void vec_resize(void *vec_ptr_, size_t len) {
+void vec_resize_impl(void *vec_ptr_, size_t len, bool zero_init) {
     void **vec_ptr = vec_ptr_;
     vec_header_t *header = get_vec_header(*vec_ptr);
     const size_t prev_len = header->len;
+    const size_t prev_capacity = header->capacity;
 
-    if (len <= prev_len) {
+    if (len <= prev_len || (!zero_init && prev_capacity >= len)) {
         header->len = len;
         return;
     }
@@ -115,9 +116,13 @@ void vec_resize(void *vec_ptr_, size_t len) {
         return;
     }
     header->len = len;
-    char *data = *vec_ptr = header + 1;
-    memset(data + (prev_len * header->value_size), 0,
-           (len - prev_len) * header->value_size);
+
+    *vec_ptr = header + 1;
+    if (zero_init) {
+        char *data = *vec_ptr;
+        memset(data + (prev_len * header->value_size), 0,
+               (len - prev_len) * header->value_size);
+    }
 }
 
 void *vec_copy(const void *const vec) {
