@@ -135,6 +135,4 @@ void vec_resize_impl(void* vec_ptr, size_t len, bool zero_init);
 
 void vec_sort_impl(void* ctx, vec_t(void) vec, less_f less);
 
-// Inlined implementations.
-
 #endif  // DELTA_VEC_H_
