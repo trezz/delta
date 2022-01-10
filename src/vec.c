@@ -29,6 +29,8 @@ static vec_header_t *vec_alloc(const allocator_t *allocator, size_t capacity,
 
 void *vec_make_alloc_impl(size_t value_size, size_t len, size_t capacity,
                           const allocator_t *allocator) {
+    assert(len <= capacity && "capacity should be greater than len");
+
     vec_header_t *s = vec_alloc(allocator, capacity, value_size);
     if (s == NULL) {
         return NULL;
