@@ -5,6 +5,7 @@
 #include <stddef.h>
 
 #include "delta/allocator.h"
+#include "delta/utilpp.h"
 
 // vec_t(T) is a dynamically allocated vector of values of type T.
 // The type vec_t(void) is a vector of any type. The type vec_t(const void) is a
@@ -67,19 +68,21 @@ vec_t(void) vec_copy(vec_t(const void) const vec);
 //
 // If an error occurs, the vector is set as invalid. Use vec_valid to check its
 // validity status.
-#define vec_append(vec_ptr, value)                                    \
-    do {                                                              \
-        __typeof__(vec_ptr) p##__LINE__ = (vec_ptr);                  \
-        const size_t vlen##__LINE__ = vec_len(*p##__LINE__);          \
-        if (*p##__LINE__ == NULL) {                                   \
-            *p##__LINE__ = vec_make(__typeof__(**p##__LINE__), 1, 1); \
-        } else {                                                      \
-            vec_resize(p##__LINE__, vlen##__LINE__ + 1);              \
-        }                                                             \
-        if (!vec_valid(*p##__LINE__)) {                               \
-            break;                                                    \
-        }                                                             \
-        (*p##__LINE__)[vlen##__LINE__] = (value);                     \
+#define vec_append(vec_ptr, value)                                             \
+    do {                                                                       \
+        __typeof__(vec_ptr) DELTA_UNIQUE_SYMBOL(p) = (vec_ptr);                \
+        const size_t DELTA_UNIQUE_SYMBOL(vlen) =                               \
+            vec_len(*DELTA_UNIQUE_SYMBOL(p));                                  \
+        if (*DELTA_UNIQUE_SYMBOL(p) == NULL) {                                 \
+            *DELTA_UNIQUE_SYMBOL(p) =                                          \
+                vec_make(__typeof__(**DELTA_UNIQUE_SYMBOL(p)), 1, 1);          \
+        } else {                                                               \
+            vec_resize(DELTA_UNIQUE_SYMBOL(p), DELTA_UNIQUE_SYMBOL(vlen) + 1); \
+        }                                                                      \
+        if (!vec_valid(*DELTA_UNIQUE_SYMBOL(p))) {                             \
+            break;                                                             \
+        }                                                                      \
+        (*DELTA_UNIQUE_SYMBOL(p))[DELTA_UNIQUE_SYMBOL(vlen)] = (value);        \
     } while (0)
 
 // vec_pop removes the last element of the given vector, decreasing its length
@@ -106,12 +109,12 @@ typedef int (*less_f)(void*, vec_t(void), size_t, size_t);
 // NULL.
 //
 // Sorting a NULL vector is a noop.
-#define vec_sort(ctx, vec, less)                                              \
-    do {                                                                      \
-        int (*vec_sorter##__line__)(__typeof__(ctx), __typeof__(vec), size_t, \
-                                    size_t) = (less);                         \
-        vec_sort_impl((void*)(ctx), (vec_t(void))(vec),                       \
-                      (less_f)vec_sorter##__line__);                          \
+#define vec_sort(ctx, vec, less)                                        \
+    do {                                                                \
+        int (*DELTA_UNIQUE_SYMBOL(vec_sorter))(                         \
+            __typeof__(ctx), __typeof__(vec), size_t, size_t) = (less); \
+        vec_sort_impl((void*)(ctx), (vec_t(void))(vec),                 \
+                      (less_f)DELTA_UNIQUE_SYMBOL(vec_sorter));         \
     } while (0)
 
 //

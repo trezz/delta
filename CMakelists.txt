@@ -23,6 +23,7 @@ install(
     include/delta/allocator.h
     include/delta/hash.h
     include/delta/strmap.h
+    include/delta/utilpp.h
     include/delta/vec.h
   DESTINATION
     include/delta)
