@@ -72,26 +72,43 @@ vec_t(void) vec_copy(vec_t(const void) const vec);
         (*DELTA_UNIQUE_SYM(p))[DELTA_UNIQUE_SYM(vlen)] = (value);            \
     } while (0)
 
-// less_f is a pointer on a function returning whether vec[a] <= vec[b] and
+// vec_less_f is a pointer on a function returning whether vec[a] <= vec[b] and
 // taking as input arguments (in that order):
-//      - ctx:      A pointer on user-defined context (may be NULL)
 //      - vec:      A vector
 //      - (a, b):   Two indices in the range [0; vec_len(vec)[
-typedef int (*less_f)(void*, vec_t(void), size_t, size_t);
+typedef bool (*vec_less_f)(vec_t(void), size_t, size_t);
 
 // vec_sort sorts the given vector using the given less function.
 //
-// An optional pointer on a user-defined sort context can be passed. It may be
-// NULL.
-//
 // NOTE: this macro function uses __typeof__. If you compiler doesn't support
 // it, use vec_sort_impl instead.
-#define vec_sort(ctx, vec, less)                                              \
-    do {                                                                      \
-        int (*DELTA_UNIQUE_SYM(vec_sorter))(__typeof__(ctx), __typeof__(vec), \
-                                            size_t, size_t) = (less);         \
-        vec_sort_impl((void*)(ctx), (vec_t(void))(vec),                       \
-                      (less_f)DELTA_UNIQUE_SYM(vec_sorter));                  \
+#define vec_sort(vec, less)                                           \
+    do {                                                              \
+        bool (*DELTA_UNIQUE_SYM(vec_sorter))(__typeof__(vec), size_t, \
+                                             size_t) = (less);        \
+        vec_sort_impl((vec_t(void))(vec),                             \
+                      (vec_less_f)DELTA_UNIQUE_SYM(vec_sorter));      \
+    } while (0)
+
+// vec_less_ctx_f is a pointer on a function returning whether vec[a] <= vec[b]
+// and taking as input arguments (in that order):
+//      - ctx:      A pointer on user-defined context (may be NULL)
+//      - vec:      A vector
+//      - (a, b):   Two indices in the range [0; vec_len(vec)[
+typedef bool (*vec_less_ctx_f)(void*, vec_t(void), size_t, size_t);
+
+// vec_sort_ctx sorts the given vector using the given less function and a
+// pointer on a user-defined context that is passed as first argument to the
+// less function.
+//
+// NOTE: this macro function uses __typeof__. If you compiler doesn't support
+// it, use vec_sort_ctx_impl instead.
+#define vec_sort_ctx(ctx, vec, less)                                           \
+    do {                                                                       \
+        bool (*DELTA_UNIQUE_SYM(vec_sorter))(__typeof__(ctx), __typeof__(vec), \
+                                             size_t, size_t) = (less);         \
+        vec_sort_ctx_impl((void*)(ctx), (vec_t(void))(vec),                    \
+                          (vec_less_ctx_f)DELTA_UNIQUE_SYM(vec_sorter));       \
     } while (0)
 
 // Private implementations.
@@ -101,6 +118,7 @@ vec_t(void) vec_make_alloc_impl(size_t value_size, size_t len, size_t capacity,
 
 void vec_resize_impl(void* vec_ptr, size_t len, bool zero_init);
 
-void vec_sort_impl(void* ctx, vec_t(void) vec, less_f less);
+void vec_sort_impl(vec_t(void) vec, vec_less_f less);
+void vec_sort_ctx_impl(void* ctx, vec_t(void) vec, vec_less_ctx_f less);
 
 #endif  // DELTA_VEC_H_

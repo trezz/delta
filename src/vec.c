@@ -142,8 +142,21 @@ void *vec_copy(const void *const vec) {
     return new_data;
 }
 
+// vec_less_ctx_swallower takes as context a user-provided less function without
+// a context argument, and calls it.
+// It allows to always sort using a context, but provide a public sort function
+// that doesn't take a context.
+static bool vec_less_ctx_swallower(vec_less_f user_provided_less_func,
+                                   void *vec, size_t a, size_t b) {
+    return user_provided_less_func(vec, a, b);
+}
+
+void vec_sort_impl(void *vec, vec_less_f less) {
+    vec_sort_ctx(less, vec, vec_less_ctx_swallower);
+}
+
 /* TODO: implement a quicksort and a stable sort. */
-void vec_sort_impl(void *ctx, void *vec, less_f less) {
+void vec_sort_ctx_impl(void *ctx, void *vec, vec_less_ctx_f less) {
     const size_t len = vec_len(vec);
     vec_header_t *header = get_vec_header(vec);
     char *data = vec;

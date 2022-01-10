@@ -279,9 +279,7 @@ static void build_most_popular_queries_set(qex_t* q) {
     }
 }
 
-static int popular_queries_sorter(void* ctx, vec_t(const char*) vec, size_t a,
-                                  size_t b) {
-    (void)ctx;
+static bool popular_queries_sorter(vec_t(const char*) vec, size_t a, size_t b) {
     return atoi(vec[a]) > atoi(vec[b]);
 }
 
@@ -292,7 +290,7 @@ static void print_nth_most_popular_queries(qex_t* q, size_t num) {
          strmap_next(&it);) {
         vec_append(&ns, it.key);
     }
-    vec_sort(NULL, ns, popular_queries_sorter);
+    vec_sort(ns, popular_queries_sorter);
     for (size_t i = 0; i < vec_len(ns); ++i) {
         const char* num_queries = ns[i];
         vec_t(char*)* queries = strmap_at(q->_popular_queries, num_queries);

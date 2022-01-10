@@ -5,8 +5,9 @@
 
 static char key[2] = {0, 0};
 
-static int chars_desc_count_sorter(strmap_t char_count_map,
-                                   vec_t(const char*) vec, size_t a, size_t b) {
+static bool chars_desc_count_sorter(strmap_t char_count_map,
+                                    vec_t(const char*) vec, size_t a,
+                                    size_t b) {
     // Get the count of char a and b from the map.
     size_t a_count = 0;
     size_t b_count = 0;
@@ -46,7 +47,7 @@ int main(int argc, const char** argv) {
 
     // Sort the chars vector in decreasing order.
     // Use the map as context for sorting to access the characters count.
-    vec_sort(chars_count_map, chars, chars_desc_count_sorter);
+    vec_sort_ctx(chars_count_map, chars, chars_desc_count_sorter);
     // Print.
     for (size_t i = 0; i < vec_len(chars); ++i) {
         const char* c = chars[i];
