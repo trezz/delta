@@ -4,7 +4,7 @@
 #include "delta/vec.h"
 
 static void append_delta_vec(size_t n) {
-    vec_t(size_t) v = NULL;
+    vec_t(size_t) v = vec_make(size_t, 0, 0);
     for (size_t i = 0; i < n; ++i) {
         vec_append(&v, i);
     }
