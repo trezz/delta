@@ -3,10 +3,9 @@
 
 #include <vector>
 
-static void append_cpp_vector(size_t n) {
-    std::vector<size_t> v;
+static void append_cpp_vector(std::vector<size_t>* v, size_t n) {
     for (size_t i = 0; i < n; ++i) {
-        v.push_back(i);
+        v->push_back(i);
     }
 }
 
@@ -20,7 +19,11 @@ int main() {
         printf("# %zu\n", n);
 
         start = clock();
-        append_cpp_vector(n);
+        {
+            std::vector<size_t>* v = new (std::vector<size_t>);
+            append_cpp_vector(v, n);
+            delete v;
+        }
         end = clock();
         printf("  cpp vector: %f\n", ((double)(end - start)) / CLOCKS_PER_SEC);
     }

@@ -16,8 +16,8 @@
 // storage capacity.
 // The elements in the range [0, len[ are zero-initialized.
 //
-// If an error occurs, the returned vector is set as invalid. Use vec_valid to
-// check its validity status.
+// NULL is returned in case of error (do not use vec_valid to check the return
+// of vec_make).
 #define vec_make(T, len, capacity) \
     ((T*)vec_make_alloc_impl(sizeof(T), (len), (capacity), &default_allocator))
 
@@ -25,8 +25,8 @@
 // using the provided allocator instead of the default one.
 // The elements in the range [0, len[ are zero-initialized.
 //
-// If an error occurs, the returned vector is set as invalid. Use vec_valid to
-// check the validity status of the returned vector.
+// NULL is returned in case of error (do not use vec_valid to check the return
+// of vec_make_alloc).
 #define vec_make_alloc(T, len, capacity, allocator) \
     ((T*)vec_make_alloc_impl(sizeof(T), (len), (capacity), (allocator)))
 
@@ -126,9 +126,7 @@ typedef int (*less_f)(void*, vec_t(void), size_t, size_t);
                       (less_f)DELTA_UNIQUE_SYMBOL(vec_sorter));         \
     } while (0)
 
-//
 // Private implementations.
-//
 
 vec_t(void) vec_make_alloc_impl(size_t value_size, size_t len, size_t capacity,
                                 const allocator_t* allocator);
@@ -136,5 +134,7 @@ vec_t(void) vec_make_alloc_impl(size_t value_size, size_t len, size_t capacity,
 void vec_resize_impl(void* vec_ptr, size_t len, bool zero_init);
 
 void vec_sort_impl(void* ctx, vec_t(void) vec, less_f less);
+
+// Inlined implementations.
 
 #endif  // DELTA_VEC_H_
