@@ -5,16 +5,13 @@
 
 static char key[2] = {0, 0};
 
-static int chars_desc_count_sorter(void* ctx, void* vec, size_t a, size_t b) {
-    // Convert the input arguments to their respective types.
-    vec_t(char*) chars_vec = vec;
-    strmap_t char_count_map = ctx;
-
+static int chars_desc_count_sorter(strmap_t char_count_map,
+                                   vec_t(const char*) vec, size_t a, size_t b) {
     // Get the count of char a and b from the map.
     size_t a_count = 0;
     size_t b_count = 0;
-    strmap_get(char_count_map, chars_vec[a], &a_count);
-    strmap_get(char_count_map, chars_vec[b], &b_count);
+    strmap_get(char_count_map, vec[a], &a_count);
+    strmap_get(char_count_map, vec[b], &b_count);
 
     // Sort in decreasing order.
     return a_count >= b_count;

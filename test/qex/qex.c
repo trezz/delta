@@ -14,7 +14,7 @@ typedef struct args {
     /* Date range. Pointer to the input argument or NULL if no range. */
     char* range;
     /* Input file paths. */
-    vec_t(char*) files;
+    vec_t(const char*) files;
 } args_t;
 
 /** Print usage */
@@ -106,7 +106,7 @@ static args_t parse_options(int argc, char** argv) {
                 }
                 fclose(f);
                 if (args.files == NULL) {
-                    args.files = vec_make(char*, 0, 0);
+                    args.files = vec_make(const char*, 0, 0);
                 }
                 vec_append(&args.files, argv[i]);
             }
@@ -267,7 +267,7 @@ static void build_most_popular_queries_set(qex_t* q) {
 
         sprintf(buf, "%zu", n);
 
-        vec_t(char*)* maybe_queries = strmap_at(q->_popular_queries, buf);
+        vec_t(const char*)* maybe_queries = strmap_at(q->_popular_queries, buf);
         if (maybe_queries) {
             vec_append(maybe_queries, it.key);
         } else {
@@ -279,21 +279,22 @@ static void build_most_popular_queries_set(qex_t* q) {
     }
 }
 
-static int popular_queries_sorter(void* ctx, void* vec, size_t a, size_t b) {
+static int popular_queries_sorter(void* ctx, vec_t(const char*) vec, size_t a,
+                                  size_t b) {
     (void)ctx;
-    vec_t(char*) v = vec;
-    return atoi(v[a]) > atoi(v[b]);
+    return atoi(vec[a]) > atoi(vec[b]);
 }
 
 static void print_nth_most_popular_queries(qex_t* q, size_t num) {
-    vec_t(char*) ns = vec_make(char*, 0, strmap_len(q->_popular_queries));
+    vec_t(const char*) ns =
+        vec_make(const char*, 0, strmap_len(q->_popular_queries));
     for (strmap_iterator_t it = strmap_iterator(q->_popular_queries);
          strmap_next(&it);) {
         vec_append(&ns, it.key);
     }
     vec_sort(NULL, ns, popular_queries_sorter);
     for (size_t i = 0; i < vec_len(ns); ++i) {
-        char* num_queries = ns[i];
+        const char* num_queries = ns[i];
         vec_t(char*)* queries = strmap_at(q->_popular_queries, num_queries);
         for (size_t j = 0; j < vec_len(*queries); ++j) {
             char* query = (*queries)[j];
@@ -328,7 +329,7 @@ int main(int argc, char** argv) {
 
     for (size_t i = 0; i < vec_len(args.files); ++i) {
         printf("# OPEN\n");
-        char* file = args.files[i];
+        const char* file = args.files[i];
         /* read whole file content into buffer */
         FILE* f = fopen(file, "r");
         fseek(f, 0, SEEK_END);
