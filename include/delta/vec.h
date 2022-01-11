@@ -31,8 +31,9 @@ typedef struct vec_header_t {
 //
 // NULL is returned in case of error (do not use vec_valid to check the return
 // of vec_make).
-#define vec_make(T, len, capacity) \
-    ((T*)vec_make_alloc_impl(sizeof(T), (len), (capacity), &default_allocator))
+#define vec_make(T, len, capacity)                               \
+    ((vec_t(T))vec_make_alloc_impl(sizeof(T), (len), (capacity), \
+                                   &default_allocator))
 
 // vec_make_alloc behaves as vec_make, but set the new vector to manage memory
 // using the provided allocator instead of the default one.
@@ -40,7 +41,7 @@ typedef struct vec_header_t {
 //
 // NULL is returned in case of error.
 #define vec_make_alloc(T, len, capacity, allocator) \
-    ((T*)vec_make_alloc_impl(sizeof(T), (len), (capacity), (allocator)))
+    ((vec_t(T))vec_make_alloc_impl(sizeof(T), (len), (capacity), (allocator)))
 
 // vec_valid returns whether the given vector is valid or not.
 #define vec_valid(vec) (vec_internal_header_const(vec)->valid)
