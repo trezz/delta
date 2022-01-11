@@ -43,6 +43,7 @@ typedef struct vec_header_t {
     vec_make_alloc(T, len, capacity, &default_allocator)
 
 // vec_valid returns whether the given vector is valid or not.
+// Returns false if NULL is given.
 #define vec_valid(vec) (vec_internal_header_const(vec)->valid)
 
 // vec_del deletes the given vector. The underlying memory is deallocated.
@@ -50,7 +51,8 @@ typedef struct vec_header_t {
 void vec_del(vec_t(void) vec);
 
 // vec_len returns the number of elements the given vector holds.
-#define vec_len(vec) (vec_internal_header_const(vec)->len)
+// Returns 0 if NULL is given.
+#define vec_len(vec) (vec == NULL ? 0 : vec_internal_header_const(vec)->len)
 
 // vec_resize resizes the vector pointed to by vec_ptr so that it can store at
 // least len elements.
