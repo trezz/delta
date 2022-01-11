@@ -99,7 +99,7 @@ void vec_resize_impl(void *vec_ptr_, size_t len, bool zero_init) {
     }
 }
 
-void *vec_copy(const void *const vec) {
+void *vec_copy_impl(const void *const vec) {
     const vec_header_t *header = vec_internal_header_const(vec);
 
     vec_t(void) new_vec = vec_make_alloc_impl(

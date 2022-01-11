@@ -21,19 +21,10 @@ typedef struct vec_header_t {
 #define vec_internal_header_const(vec) (((const vec_header_t*)vec) - 1)
 
 // vec_t(T) is a dynamically allocated vector of values of type T.
+//
 // The type vec_t(void) is a vector of any type. The type vec_t(const void) is a
 // vector of any constant type.
 #define vec_t(T) T*
-
-// vec_make returns a new vec_t(T) of the given length and the given internal
-// storage capacity.
-// The elements in the range [0, len[ are zero-initialized.
-//
-// NULL is returned in case of error (do not use vec_valid to check the return
-// of vec_make).
-#define vec_make(T, len, capacity)                               \
-    ((vec_t(T))vec_make_alloc_impl(sizeof(T), (len), (capacity), \
-                                   &default_allocator))
 
 // vec_make_alloc behaves as vec_make, but set the new vector to manage memory
 // using the provided allocator instead of the default one.
@@ -42,6 +33,14 @@ typedef struct vec_header_t {
 // NULL is returned in case of error.
 #define vec_make_alloc(T, len, capacity, allocator) \
     ((vec_t(T))vec_make_alloc_impl(sizeof(T), (len), (capacity), (allocator)))
+
+// vec_make returns a new vec_t(T) of the given length and the given internal
+// storage capacity.
+// The elements in the range [0, len[ are zero-initialized.
+//
+// NULL is returned in case of error.
+#define vec_make(T, len, capacity) \
+    vec_make_alloc(T, len, capacity, &default_allocator)
 
 // vec_valid returns whether the given vector is valid or not.
 #define vec_valid(vec) (vec_internal_header_const(vec)->valid)
@@ -63,9 +62,8 @@ void vec_del(vec_t(void) vec);
 
 // vec_copy returns a copy of the given vector.
 //
-// If an error occurs, the returned vector is set as invalid. Use vec_valid to
-// check the validity status of the returned vector.
-vec_t(void) vec_copy(vec_t(const void) const vec);
+// NULL is returned in case of error.
+#define vec_copy(vec) ((__typeof__(vec))vec_copy_impl(vec))
 
 // vec_append appends the given value to the vector pointed to by vec_ptr,
 // increasing the vector's length by one.
@@ -130,6 +128,8 @@ vec_t(void) vec_make_alloc_impl(size_t value_size, size_t len, size_t capacity,
                                 const allocator_t* allocator);
 
 void vec_resize_impl(void* vec_ptr, size_t len, bool zero_init);
+
+vec_t(void) vec_copy_impl(vec_t(const void) const vec);
 
 void vec_sort_impl(vec_t(void) vec, vec_less_f less);
 void vec_sort_ctx_impl(void* ctx, vec_t(void) vec, vec_less_ctx_f less);
