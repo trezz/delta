@@ -70,7 +70,8 @@ vec_t(void) vec_copy(vec_t(const void) const vec);
 // vec_append appends the given value to the vector pointed to by vec_ptr,
 // increasing the vector's length by one.
 //
-// This function asserts that the vector is valid before appending the value.
+// If an error occurs, the vector is set as invalid. Use vec_valid to check the
+// validity status of the returned vector.
 //
 // NOTE: This macro function uses __typeof__. If you compiler doesn't support
 // it, appending to a vector can be done by resizing the vector first (using
@@ -81,7 +82,6 @@ vec_t(void) vec_copy(vec_t(const void) const vec);
         const size_t DELTA_UNIQUE_SYM(vlen) = vec_len(*DELTA_UNIQUE_SYM(p)); \
         vec_resize_impl(DELTA_UNIQUE_SYM(p), DELTA_UNIQUE_SYM(vlen) + 1,     \
                         false);                                              \
-        assert(vec_valid(*DELTA_UNIQUE_SYM(p)) && "vector resize failed");   \
         (*DELTA_UNIQUE_SYM(p))[DELTA_UNIQUE_SYM(vlen)] = (value);            \
     } while (0)
 
