@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "delta/strmap.h"
+#include "delta/hash.h"
+#include "delta/map.h"
 #include "delta/vec.h"
 
 /** Holds the inputs arguments. */
@@ -182,28 +183,25 @@ typedef struct qex {
     /**< User-defined range given as constructor's input argument */
     range_t _range;
     /**< Current range object being updated at each line parsing */
-    strmap_t _queries_in_range;
+    map_t(size_t) _queries_in_range;
     /**< Queries in requested range */
-    strmap_t _popular_queries;
+    map_t(vec_t(const char*)) _popular_queries;
 } qex_t;
 
 static void qex_init(qex_t* q, char* range) {
-    strmap_config_t config = strmap_config(sizeof(size_t), 0);
-    q->_queries_in_range = strmap_make_from_config(&config);
-    config.value_size = sizeof(void*);
-    q->_popular_queries = strmap_make_from_config(&config);
+    q->_queries_in_range = map_make(size_t, 0);
+    q->_popular_queries = map_make(vec_t(const char*), 0);
     parse_range(&q->_user_range, range);
 }
 
 static void qex_del(qex_t* q) {
-    strmap_del(q->_queries_in_range);
-
-    for (strmap_iterator_t it = strmap_iterator(q->_popular_queries);
-         strmap_next(&it);) {
-        vec_t(char*)* queries_ptr = it.val_ptr;
+    map_del(q->_queries_in_range);
+    for (map_iterator_t it = map_iterator_make(q->_popular_queries);
+         map_iterator_next(q->_popular_queries, &it);) {
+        vec_t(char*)* queries_ptr = it.value;
         vec_del(*queries_ptr);
     }
-    strmap_del(q->_popular_queries);
+    map_del(q->_popular_queries);
 }
 
 static int qex_is_equal(const range_t* range, const range_t* user_range) {
@@ -244,15 +242,8 @@ static char* index_tsv_line(qex_t* q, char* line) {
     /* here, the entire line is parsed. If the range does not match with the
      * requested user one, do nothing more. */
     if (qex_is_equal(&q->_range, &q->_user_range)) {
-        char* key = query;
-        key[query_size] = 0;
-        size_t* maybe_n =
-            strmap_at_withlen(q->_queries_in_range, key, query_size);
-        if (maybe_n) {
-            ++(*maybe_n);
-        } else {
-            q->_queries_in_range = strmap_addv(q->_queries_in_range, key, 1);
-        }
+        query[query_size] = 0;
+        map_get(&q->_queries_in_range, map_key_from(query)) += 1;
     }
 
     /* returns null if this is the end of file */
@@ -260,22 +251,19 @@ static char* index_tsv_line(qex_t* q, char* line) {
 }
 
 static void build_most_popular_queries_set(qex_t* q) {
-    for (strmap_iterator_t it = strmap_iterator(q->_queries_in_range);
-         strmap_next(&it);) {
-        size_t n = *(size_t*)it.val_ptr;
+    for (map_iterator_t it = map_iterator_make(q->_queries_in_range);
+         map_iterator_next(q->_queries_in_range, &it);) {
+        size_t n = *(size_t*)it.value;
         char buf[100];
 
         sprintf(buf, "%zu", n);
 
-        vec_t(const char*)* maybe_queries = strmap_at(q->_popular_queries, buf);
-        if (maybe_queries) {
-            vec_append(maybe_queries, it.key);
-        } else {
-            vec_t(const char*) queries = vec_make(const char*, 1, 10);
-            queries[0] = it.key;
-            q->_popular_queries =
-                strmap_addv(q->_popular_queries, buf, queries);
+        vec_t(const char*)* queries =
+            &map_get(&q->_popular_queries, map_key_from(buf));
+        if (*queries == NULL) {
+            *queries = vec_make(const char*, 0, 10);
         }
+        vec_append(queries, map_key_as(const char*, it.key));
     }
 }
 
@@ -285,17 +273,18 @@ static bool popular_queries_sorter(vec_t(const char*) vec, size_t a, size_t b) {
 
 static void print_nth_most_popular_queries(qex_t* q, size_t num) {
     vec_t(const char*) ns =
-        vec_make(const char*, 0, strmap_len(q->_popular_queries));
-    for (strmap_iterator_t it = strmap_iterator(q->_popular_queries);
-         strmap_next(&it);) {
-        vec_append(&ns, it.key);
+        vec_make(const char*, 0, map_len(q->_popular_queries));
+    for (map_iterator_t it = map_iterator_make(q->_popular_queries);
+         map_iterator_next(q->_popular_queries, &it);) {
+        vec_append(&ns, map_key_as(const char*, it.key));
     }
     vec_sort(ns, popular_queries_sorter);
     for (size_t i = 0; i < vec_len(ns); ++i) {
         const char* num_queries = ns[i];
-        vec_t(char*)* queries = strmap_at(q->_popular_queries, num_queries);
+        vec_t(const char*) queries =
+            map_get(&q->_popular_queries, map_key_from(num_queries));
         for (size_t j = 0; j < vec_len(*queries); ++j) {
-            char* query = (*queries)[j];
+            const char* query = queries[j];
             if (num-- == 0) {
                 goto end;
             }
@@ -323,7 +312,7 @@ int main(int argc, char** argv) {
     /* index input files */
     qex_t qex;
     qex_init(&qex, args.range);
-    strmap_t buffers = strmap_make(sizeof(char*), vec_len(args.files));
+    map_t(char*) buffers = map_make(char*, vec_len(args.files));
 
     for (size_t i = 0; i < vec_len(args.files); ++i) {
         printf("# OPEN\n");
@@ -334,7 +323,7 @@ int main(int argc, char** argv) {
         size_t length = (size_t)ftell(f);
         fseek(f, 0, SEEK_SET);
         char* buf = malloc(sizeof(char) * length + 1);
-        buffers = strmap_addv(buffers, file, buf);
+        map_get(&buffers, map_key_from(file)) = buf;
         if (fread(buf, length, 1, f) != 1) {
             printf("failed to read file\n");
             exit(1);
@@ -356,17 +345,18 @@ int main(int argc, char** argv) {
 
     /* extract queries based on input arguments */
     if (args.num == 0) {
-        printf("%zu\n", strmap_len(qex._queries_in_range));
+        printf("%zu\n", map_len(qex._queries_in_range));
     } else {
         build_most_popular_queries_set(&qex);
         print_nth_most_popular_queries(&qex, args.num);
     }
 
-    for (strmap_iterator_t it = strmap_iterator(buffers); strmap_next(&it);) {
-        char** buffer = it.val_ptr;
+    for (map_iterator_t it = map_iterator_make(buffers);
+         map_iterator_next(buffers, &it);) {
+        char** buffer = it.value;
         free(*buffer);
     }
-    strmap_del(buffers);
+    map_del(buffers);
     qex_del(&qex);
 
     vec_del(args.files);

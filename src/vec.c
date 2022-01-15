@@ -8,6 +8,18 @@
 
 #include "delta/allocator.h"
 
+typedef struct vec_header_t {
+    size_t value_size;
+    size_t len;
+    size_t capacity;
+    bool valid;
+
+    const allocator_t *_allocator;
+} vec_header_t;
+
+#define vec_internal_header(vec) (((vec_header_t *)vec) - 1)
+#define vec_internal_header_const(vec) (((const vec_header_t *)vec) - 1)
+
 static vec_header_t *vec_alloc(const allocator_t *allocator, size_t capacity,
                                size_t value_size) {
     return allocator_alloc(
@@ -36,6 +48,14 @@ void *vec_make_alloc_impl(size_t value_size, size_t len, size_t capacity,
     }
 
     return data;
+}
+
+bool vec_valid(const void *vec) {
+    return vec == NULL ? false : vec_internal_header_const(vec)->valid;
+}
+
+size_t vec_len(const void *vec) {
+    return vec == NULL ? 0 : vec_internal_header_const(vec)->len;
 }
 
 void vec_del(void *vec) {
@@ -99,7 +119,7 @@ void vec_resize_impl(void *vec_ptr_, size_t len, bool zero_init) {
     }
 }
 
-void *vec_copy_impl(const void *const vec) {
+void *vec_copy_impl(const void *vec) {
     const vec_header_t *header = vec_internal_header_const(vec);
 
     vec_t(void) new_vec = vec_make_alloc_impl(

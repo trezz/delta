@@ -8,18 +8,6 @@
 #include "delta/allocator.h"
 #include "delta/utilpp.h"
 
-typedef struct vec_header_t {
-    size_t value_size;
-    size_t len;
-    size_t capacity;
-    bool valid;
-
-    const allocator_t* _allocator;
-} vec_header_t;
-
-#define vec_internal_header(vec) (((vec_header_t*)vec) - 1)
-#define vec_internal_header_const(vec) (((const vec_header_t*)vec) - 1)
-
 // vec_t(T) is a dynamically allocated vector of values of type T.
 //
 // The type vec_t(void) is a vector of any type. The type vec_t(const void) is a
@@ -44,7 +32,7 @@ typedef struct vec_header_t {
 
 // vec_valid returns whether the given vector is valid or not.
 // Returns false if NULL is given.
-#define vec_valid(vec) (vec_internal_header_const(vec)->valid)
+bool vec_valid(const void* vec);
 
 // vec_del deletes the given vector. The underlying memory is deallocated.
 // Deleting a NULL vector is a noop.
@@ -52,7 +40,7 @@ void vec_del(vec_t(void) vec);
 
 // vec_len returns the number of elements the given vector holds.
 // Returns 0 if NULL is given.
-#define vec_len(vec) (vec == NULL ? 0 : vec_internal_header_const(vec)->len)
+size_t vec_len(vec_t(const void) vec);
 
 // vec_resize resizes the vector pointed to by vec_ptr so that it can store at
 // least len elements.
@@ -131,7 +119,7 @@ vec_t(void) vec_make_alloc_impl(size_t value_size, size_t len, size_t capacity,
 
 void vec_resize_impl(void* vec_ptr, size_t len, bool zero_init);
 
-vec_t(void) vec_copy_impl(vec_t(const void) const vec);
+vec_t(void) vec_copy_impl(vec_t(const void) vec);
 
 void vec_sort_impl(vec_t(void) vec, vec_less_f less);
 void vec_sort_ctx_impl(void* ctx, vec_t(void) vec, vec_less_ctx_f less);

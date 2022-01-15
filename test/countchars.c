@@ -1,61 +1,44 @@
-#include <delta/strmap.h>
 #include <stdio.h>
 
+#include "delta/map.h"
 #include "delta/vec.h"
 
-static char key[2] = {0, 0};
-
-static bool chars_desc_count_sorter(strmap_t char_count_map,
-                                    vec_t(const char*) vec, size_t a,
-                                    size_t b) {
-    // Get the count of char a and b from the map.
-    size_t a_count = 0;
-    size_t b_count = 0;
-    strmap_get(char_count_map, vec[a], &a_count);
-    strmap_get(char_count_map, vec[b], &b_count);
-    // Sort in decreasing order.
-    return a_count >= b_count;
+static bool chars_sorter(map_t(size_t) m, vec_t(char) vec, size_t a, size_t b) {
+    return *map_at(m, map_key_from(vec[a])) >= *map_at(m, map_key_from(vec[b]));
 }
 
 // This program counts each distinct character given as input, and prints their
 // count sorted in decreasing order.
 int main(int argc, const char** argv) {
-    // Make a map mapping strings to size_t, and let the capacity be computed
+    // Make a map mapping chars to size_t, and let the capacity be computed
     // automatically.
-    strmap_t chars_count_map = strmap_make(sizeof(size_t), 0);
+    map_t(size_t) chars_count = map_make(size_t, 0);
 
     for (int i = 1; i < argc; ++i) {
         const char* arg = argv[i];
-        while ((*key = *arg++) != 0) {
-            // Get the current count of the key from the map.
-            size_t n = 0;
-            strmap_get(chars_count_map, key, &n);
-            // Update the count if the key exists, or insert the pair (key, 1).
-            chars_count_map = strmap_addv(chars_count_map, key, n + 1);
+        for (char c = 0; (c = *arg++) != 0;) {
+            map_get(&chars_count, map_key_from(c)) += 1;
         }
     }
 
     // Make a vector of char to sort the mapped characters by their counts in
     // decreasing order.
-    vec_t(const char*) chars =
-        vec_make(const char*, 0, strmap_len(chars_count_map));
+    vec_t(char) chars = vec_make(char, 0, map_len(chars_count));
     // Iterate on each mapped pairs to fill the chars vector.
-    for (strmap_iterator_t it = strmap_iterator(chars_count_map);
-         strmap_next(&it);) {
-        vec_append(&chars, it.key);
+    for (map_iterator_t it = map_iterator_make(chars_count);
+         map_iterator_next(chars_count, &it);) {
+        vec_append(&chars, map_key_as(char, it.key));
     }
 
     // Sort the chars vector in decreasing order.
     // Use the map as context for sorting to access the characters count.
-    vec_sort_ctx(chars_count_map, chars, chars_desc_count_sorter);
+    vec_sort_ctx(chars_count, chars, chars_sorter);
     // Print.
     for (size_t i = 0; i < vec_len(chars); ++i) {
-        const char* c = chars[i];
-        size_t count = 0;
-        strmap_get(chars_count_map, c, &count);
-        printf("char '%s' counted %zu time(s)\n", c, count);
+        size_t count = map_get(&chars_count, map_key_from(chars[i]));
+        printf("char '%c' counted %zu time(s)\n", chars[i], count);
     }
     // Delete the created containers.
     vec_del(chars);
-    strmap_del(chars_count_map);
+    map_del(chars_count);
 }

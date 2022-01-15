@@ -6,6 +6,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Weverything -pedantic -O3 -Wno-padded
 add_library(delta
     ${CMAKE_SOURCE_DIR}/src/allocator.c
     ${CMAKE_SOURCE_DIR}/src/hash.c
+    ${CMAKE_SOURCE_DIR}/src/map.c
     ${CMAKE_SOURCE_DIR}/src/strmap.c
     ${CMAKE_SOURCE_DIR}/src/vec.c
 )
@@ -23,6 +24,7 @@ install(
     include/delta/allocator.h
     include/delta/hash.h
     include/delta/strmap.h
+    include/delta/map.h
     include/delta/utilpp.h
     include/delta/vec.h
   DESTINATION
