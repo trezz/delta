@@ -5,6 +5,7 @@
 #include <stddef.h>
 
 #include "delta/allocator.h"
+#include "delta/pputil.h"
 
 // Returns a new vector. It is heap allocated to the given length.
 // NULL is returned in case of error.
@@ -42,13 +43,13 @@ void vec_resize(void* vec_ptr, size_t len);
 
 // Appends the value to the vector pointed to by vec_ptr.
 // If an error occurs, nothing is appended and the vector is set as invalid.
-#define vec_append(vec_ptr, value)                        \
-    do {                                                  \
-        const size_t len##__LINE__ = vec_len(*(vec_ptr)); \
-        vec_resize((vec_ptr), len##__LINE__ + 1);         \
-        if (vec_valid(*(vec_ptr))) {                      \
-            (*(vec_ptr))[len##__LINE__] = value;          \
-        }                                                 \
+#define vec_append(vec_ptr, value)                            \
+    do {                                                      \
+        const size_t DELTA_UNIQUE(len) = vec_len(*(vec_ptr)); \
+        vec_resize((vec_ptr), DELTA_UNIQUE(len) + 1);         \
+        if (vec_valid(*(vec_ptr))) {                          \
+            (*(vec_ptr))[DELTA_UNIQUE(len)] = value;          \
+        }                                                     \
     } while (0)
 
 // Less function pointer taking a user-defined context, the vector and two
