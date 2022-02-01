@@ -15,7 +15,7 @@ typedef struct vec_header {
     bool valid;
     char _[7];
 
-    const allocator_t *allocator;
+    const allocator_t *_allocator;
 } vec_header;
 
 #define get_vec_header(vec) (((vec_header *)vec) - 1)
@@ -39,14 +39,9 @@ void *vec_make_alloc_impl(size_t value_size, size_t len, size_t capacity,
     s->len = len;
     s->capacity = capacity;
     s->valid = true;
-    s->allocator = allocator;
+    s->_allocator = allocator;
 
-    char *data = (void *)(s + 1);
-    if (s->len > 0) {
-        memset(data, 0, s->len * s->value_size);
-    }
-
-    return data;
+    return s + 1;
 }
 
 bool vec_valid(const void *vec) {
@@ -59,7 +54,7 @@ void vec_del(void *vec) {
         return;
     }
     vec_header *header = get_vec_header(vec);
-    allocator_dealloc(header->allocator, header);
+    allocator_dealloc(header->_allocator, header);
 }
 
 size_t vec_len(const void *vec) {
@@ -87,107 +82,30 @@ static void vec_grow_capacity(vec_header **header_ptr, size_t n) {
     if (capacity_changed) {
         // Reallocate.
         vec_header *new_header =
-            vec_alloc(header->allocator, header->capacity, header->value_size);
+            vec_alloc(header->_allocator, header->capacity, header->value_size);
         if (new_header == NULL) {
             header->valid = false;
             return;
         }
         memcpy(new_header, header,
                header->len * header->value_size + sizeof(vec_header));
-        allocator_dealloc(new_header->allocator, header);
+        allocator_dealloc(new_header->_allocator, header);
 
         *header_ptr = new_header;
     }
 }
 
-void *vec_appendnv(void *vec, size_t n, ...) {
-    vec_header *header = get_vec_header(vec);
-
-    int8_t i8 = 0;
-    int16_t i16 = 0;
-    int32_t i32 = 0;
-    int64_t i64 = 0;
-    va_list args;
-
-    va_start(args, n);
-
-    vec_grow_capacity(&header, n);
-    if (!header->valid) {
-        return header + 1;
-    }
-
-    char *data = (void *)(header + 1);
-    data += header->len * header->value_size;
-
-    for (size_t narg = 0; narg < n; ++narg) {
-        i64 = va_arg(args, int64_t);
-        switch (header->value_size) {
-            case sizeof(int8_t):
-                i8 = (int8_t)i64;
-                memcpy(data, &i8, sizeof(int8_t));
-                break;
-            case sizeof(int16_t):
-                i16 = (int16_t)i64;
-                memcpy(data, &i16, sizeof(int16_t));
-                break;
-            case sizeof(int32_t):
-                i32 = (int32_t)i64;
-                memcpy(data, &i32, sizeof(int32_t));
-                break;
-            case sizeof(int64_t):
-                memcpy(data, &i64, sizeof(int64_t));
-                break;
-            default:
-                assert(0 && "unsupported value data size");
-        }
-        data += header->value_size;
-    }
-
-    va_end(args);
-
-    header->len += n;
-    return header + 1;
-}
-
-void *vec_appendnp(void *vec, size_t n, ...) {
-    vec_header *header = get_vec_header(vec);
-
-    void *arg = NULL;
-    va_list args;
-
-    va_start(args, n);
-
-    vec_grow_capacity(&header, n);
-    if (!header->valid) {
-        return header + 1;
-    }
-
-    char *data = (void *)(header + 1);
-    data += header->len * header->value_size;
-
-    for (size_t narg = 0; narg < n; ++narg) {
-        arg = va_arg(args, void *);
-        memcpy(data, arg, header->value_size);
-        data += header->value_size;
-    }
-
-    va_end(args);
-
-    header->len += n;
-    return header + 1;
-}
-
-void *vec_resize(void *vec, size_t len) {
-    vec_header *header = get_vec_header(vec);
+void vec_resize(void *vec_ptr, size_t len) {
+    void **vec_addr = vec_ptr;
+    vec_header *header = get_vec_header(*vec_addr);
     if (header->capacity < len) {
-        vec_grow_capacity(&header, len);
+        vec_grow_capacity(&header, len - header->capacity);
         if (!header->valid) {
-            return header + 1;
+            return;
         }
     }
-
     header->len = len;
-    return header + 1;
+    *vec_addr = header + 1;
 }
 
 /* TODO: implement a quicksort and a stable sort. */

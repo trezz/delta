@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 3.6)
 project("delta")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Weverything -pedantic -O3")
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_FLAGS "-Wall -Wextra -Weverything -pedantic")
+set(CMAKE_C_FLAGS_DEBUG "-g")
+set(CMAKE_C_FLAGS_RELEASE "-O3")
 
 add_library(delta
     ${CMAKE_SOURCE_DIR}/src/allocator.c
@@ -14,8 +18,6 @@ target_include_directories(delta PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-
-set_property(TARGET delta PROPERTY C_STANDARD 11)
 
 install(TARGETS delta DESTINATION lib)
 install(

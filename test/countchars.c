@@ -44,12 +44,13 @@ int main(int argc, char** argv) {
 
     // Make a vector of char to sort the mapped characters by their counts in
     // decreasing order.
-    char** chars_vec = vec_make(char*, 0, strmap_len(char_count_map));
+    const char** chars_vec =
+        vec_make(const char*, 0, strmap_len(char_count_map));
 
     // Iterate on each mapped pairs to fill the chars vector.
     for (strmap_iterator_t it = strmap_iterator(char_count_map);
          strmap_next(&it);) {
-        chars_vec = vec_appendv(chars_vec, it.key);
+        vec_append(&chars_vec, it.key);
     }
 
     // Sort the chars vector in decreasing order.

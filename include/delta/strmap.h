@@ -9,7 +9,7 @@ typedef void* strmap_t;
 /*
  * Configuration of a strmap.
  */
-typedef struct _strmap_config {
+typedef struct strmap_config {
     /* Size of the mapped value type. */
     size_t value_size;
     /* Initial capacity of the map. */
@@ -112,7 +112,7 @@ strmap_t strmap_addv(strmap_t map, const char* key, ...);
 /*
  * An iterator on a map.
  */
-typedef struct _strmap_iterator {
+typedef struct strmap_iterator {
     /* Current key. */
     const char* key;
     /* Pointer on the current value. */
