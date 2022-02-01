@@ -1,36 +1,18 @@
 # Delta - C11 generic containers inspired by Go
 
-The delta library provides the following containers, implemented in C89:
-* A "generic" string hashmap mapping C strings (`const char*`) keys to values of any type.
+The delta library provides the following containers, implemented in C11:
 * A "generic" vector.
+* A "generic" string hashmap mapping C strings (`const char*`) keys to values of any type.
 
-## Howto
-
-### Install
-
-Clone the repository:
-```sh
-git clone git@github.com:trezz/delta.git
-mkdir delta/build
-cd delta/build
-```
-
-To install the library under `~/.local`:
-```sh
-mkdir -p ~/.local
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=~/.local
-make install
-```
-
-### Tutorial
+## Tutorial
 
 The program [countchars.c](test/countchars.c) takes any number of arguments and prints count of each distinct character given in descending order, using a vector and a hash map.
 
 To compile and run it:
 
 ```sh
-clang ./test/countchars.c -I ~/.local/include -L ~/.local/lib -ldelta -o countchars
-./countchars hello world!
+cmake --build ./build  --target countchars
+./build/countchars hello world!
 ```
 ```
 char 'l' counted 3 time(s)
