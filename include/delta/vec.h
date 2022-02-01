@@ -70,15 +70,13 @@ void* vec_appendnp(void* vec, size_t n, ...);
 
 #define vec_appendp(vec, ptr) vec_appendnp(vec, 1, ptr)
 
-/*
- * Pops the last vec value and decreases the vec size by one.
- */
-void vec_pop(void* vec);
+// Resizes the vector to len and return the resized vector. the vector is
+// reallocated if it has not enough capacity fit the requested size.
+// If an error occurs the original vector is returned and set as invalid.
+void* vec_resize(void* vec, size_t len);
 
-/*
- * Clears the vec. The internal storage isn't freed.
- */
-void vec_clear(void* vec);
+// Clears the vector. The internal storage isn't freed.
+#define vec_clear(vec) vec_resize(vec, 0)
 
 /*
  * Less function pointer taking a user-defined context, the vector and two

@@ -8,13 +8,14 @@
 
 #include "delta/allocator.h"
 
-typedef struct _vec_header {
+typedef struct vec_header {
     size_t value_size;
     size_t len;
     size_t capacity;
     bool valid;
+    char _[7];
 
-    const allocator_t *_allocator;
+    const allocator_t *allocator;
 } vec_header;
 
 #define get_vec_header(vec) (((vec_header *)vec) - 1)
@@ -38,7 +39,7 @@ void *vec_make_alloc_impl(size_t value_size, size_t len, size_t capacity,
     s->len = len;
     s->capacity = capacity;
     s->valid = true;
-    s->_allocator = allocator;
+    s->allocator = allocator;
 
     char *data = (void *)(s + 1);
     if (s->len > 0) {
@@ -58,7 +59,7 @@ void vec_del(void *vec) {
         return;
     }
     vec_header *header = get_vec_header(vec);
-    allocator_dealloc(header->_allocator, header);
+    allocator_dealloc(header->allocator, header);
 }
 
 size_t vec_len(const void *vec) {
@@ -66,9 +67,14 @@ size_t vec_len(const void *vec) {
     return header->len;
 }
 
+// Grows the internal capacity of the vector to at least n elements.
+// The original vector is left untouched and set as invalid if an error occurs
 static void vec_grow_capacity(vec_header **header_ptr, size_t n) {
-    bool capacity_changed = false;
+    if (n == 0) {
+        return;
+    }
 
+    bool capacity_changed = false;
     vec_header *header = *header_ptr;
     if (header->capacity == 0) {
         header->capacity = 1;
@@ -81,14 +87,14 @@ static void vec_grow_capacity(vec_header **header_ptr, size_t n) {
     if (capacity_changed) {
         // Reallocate.
         vec_header *new_header =
-            vec_alloc(header->_allocator, header->capacity, header->value_size);
+            vec_alloc(header->allocator, header->capacity, header->value_size);
         if (new_header == NULL) {
             header->valid = false;
             return;
         }
         memcpy(new_header, header,
                header->len * header->value_size + sizeof(vec_header));
-        allocator_dealloc(new_header->_allocator, header);
+        allocator_dealloc(new_header->allocator, header);
 
         *header_ptr = new_header;
     }
@@ -171,17 +177,17 @@ void *vec_appendnp(void *vec, size_t n, ...) {
     return header + 1;
 }
 
-void vec_pop(void *vec) {
+void *vec_resize(void *vec, size_t len) {
     vec_header *header = get_vec_header(vec);
-    if (header->len == 0) {
-        return;
+    if (header->capacity < len) {
+        vec_grow_capacity(&header, len);
+        if (!header->valid) {
+            return header + 1;
+        }
     }
-    --header->len;
-}
 
-void vec_clear(void *vec) {
-    vec_header *header = get_vec_header(vec);
-    header->len = 0;
+    header->len = len;
+    return header + 1;
 }
 
 /* TODO: implement a quicksort and a stable sort. */
