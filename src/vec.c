@@ -108,23 +108,36 @@ void vec_resize(void *vec_ptr, size_t len) {
     *vec_addr = header + 1;
 }
 
-/* TODO: implement a quicksort and a stable sort. */
-void vec_sort(void *ctx, void *vec, less_f less) {
-    const size_t len = vec_len(vec);
+void vec_swap(void *vec, size_t i, size_t j) {
     vec_header *header = get_vec_header(vec);
     char *data = vec;
     void *swapbuf = data + header->capacity * header->value_size;
+    void *i_data = data + i * header->value_size;
+    void *j_data = data + j * header->value_size;
+    memcpy(swapbuf, i_data, header->value_size);
+    memcpy(i_data, j_data, header->value_size);
+    memcpy(j_data, swapbuf, header->value_size);
+}
 
-    assert(1000 > header->value_size);
+// Less function forwarding the call to the less function without context passed
+// as context. It is used to reuse the implementation of the sort with context
+// without requiring the user to provide a NULL context.
+static bool vec_less_from_ctx(void *vec, size_t i, size_t j, void *ctx) {
+    const vec_less_f lessFunc = *(vec_less_f *)ctx;
+    return lessFunc(vec, i, j);
+}
 
-    for (size_t i = 0; i < len; ++i) {
-        for (size_t j = i + 1; j < len; ++j) {
-            if (less(ctx, vec, j, i)) {
-                void *i_data = data + i * header->value_size;
-                void *j_data = data + j * header->value_size;
-                memcpy(swapbuf, i_data, header->value_size);
-                memcpy(i_data, j_data, header->value_size);
-                memcpy(j_data, swapbuf, header->value_size);
+void vec_sort(void *vec, vec_less_f less) {
+    vec_sort_ctx(vec, vec_less_from_ctx, &less);
+}
+
+/* TODO: implement a quicksort and a stable sort. */
+void vec_sort_ctx(void *vec, vec_less_ctx_f less, void *ctx) {
+    vec_header *header = get_vec_header(vec);
+    for (size_t i = 0; i < header->len - 1; ++i) {
+        for (size_t j = i + 1; j < header->len; ++j) {
+            if (less(vec, j, i, ctx)) {
+                vec_swap(vec, j, i);
             }
         }
     }

@@ -5,7 +5,7 @@
 
 static char key[2] = {0, 0};
 
-static int chars_desc_count_sorter(void* ctx, void* vec, size_t a, size_t b) {
+static bool chars_desc_count_sorter(void* vec, size_t a, size_t b, void* ctx) {
     // Convert the input arguments to their respective types.
     char** chars_vec = vec;
     strmap_t char_count_map = ctx;
@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
 
     // Sort the chars vector in decreasing order.
     // Use the map as context for sorting to access the characters count.
-    vec_sort(char_count_map, chars_vec, chars_desc_count_sorter);
+    vec_sort_ctx(chars_vec, chars_desc_count_sorter, char_count_map);
 
     // Print.
     for (size_t i = 0; i < vec_len(chars_vec); ++i) {

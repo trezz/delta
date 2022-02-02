@@ -52,16 +52,25 @@ void vec_resize(void* vec_ptr, size_t len);
         }                                                     \
     } while (0)
 
-// Less function pointer taking a user-defined context, the vector and two
-// indices.
-// The function must return whether vec[a] <= vec[b].
-typedef int (*less_f)(void* /* ctx */, void* /* vec */, size_t /* a */,
-                      size_t /* b */
-);
+// Swaps the vector value stored at index i with the one stored at index j.
+// i and j must be in the range [0; len[
+void vec_swap(void* vec, size_t i, size_t j);
 
-// Sorts the vec using the provided less function.
-// ctx is an optional user-defined context passed to the less function. It may
-// be NULL.
-void vec_sort(void* ctx, void* vec, less_f less);
+// Less function pointer taking the vector and two indices. The function must
+// return whether vec[i] <= vec[j].
+typedef bool (*vec_less_f)(void* /* vec */, size_t /* i */, size_t /* j */);
+
+// Sorts the vector using the provided less function which can use the provided
+// context.
+void vec_sort(void* vec, vec_less_f less);
+
+// Less function pointer taking the vector, two indices and a user-defined
+// context. The function must return whether vec[i] <= vec[j].
+typedef bool (*vec_less_ctx_f)(void* /* vec */, size_t /* i */, size_t /* j */,
+                               void* /* ctx */);
+
+// Sorts the vector using the provided less function which can use the provided
+// context.
+void vec_sort_ctx(void* vec, vec_less_ctx_f less, void* ctx);
 
 #endif  // DELTA_VEC_H_
