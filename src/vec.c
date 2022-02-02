@@ -25,7 +25,7 @@ static vec_header *vec_alloc(const allocator_t *allocator, size_t capacity,
                              size_t value_size) {
     return allocator_alloc(
         allocator,
-        capacity * value_size + sizeof(vec_header) + 1 /* swap buffer */);
+        (capacity + 1 /* swap buffer */) * value_size + sizeof(vec_header));
 }
 
 void *vec_make_alloc_impl(size_t value_size, size_t len, size_t capacity,
